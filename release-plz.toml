@@ -1,8 +1,4 @@
 [workspace]
-# The crate reads answers but cannot fetch them yet, so it does not belong on
-# crates.io. release-plz still writes the changelog, raises the version, tags and
-# makes the GitHub release. Turn this on when the transport layer lands.
-publish = false
 # Compare the public API against the released version and refuse a version number
 # that is too small for the change.
 semver_check = true

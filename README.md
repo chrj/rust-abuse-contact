@@ -1,5 +1,9 @@
 # abuse-contact
 
+[![crates.io](https://img.shields.io/crates/v/abuse-contact.svg)](https://crates.io/crates/abuse-contact)
+[![docs.rs](https://docs.rs/abuse-contact/badge.svg)](https://docs.rs/abuse-contact)
+[![CI](https://github.com/chrj/rust-abuse-contact/actions/workflows/ci.yml/badge.svg)](https://github.com/chrj/rust-abuse-contact/actions/workflows/ci.yml)
+
 Find where to report abuse for an IP address or a domain name.
 
 The contact is in a different place for each kind of target, and the answers are not
@@ -7,6 +11,12 @@ interchangeable. The registrar of a domain can suspend the name. The network tha
 holds an IP address can take the host off the air. The operator of the domain runs the
 service. A report goes to the one that can act on it, so this crate returns every
 contact it finds with the scope it covers, and leaves the choice to you.
+
+## Install
+
+```sh
+cargo add abuse-contact
+```
 
 ## State
 
