@@ -5,12 +5,10 @@
 //! [`Record::abuse_contacts`] reads the contacts out of it.
 
 use std::net::IpAddr;
-use std::sync::Arc;
 use std::time::Duration;
 
 use crate::bootstrap::{Bootstrap, DNS_URL, IPV4_URL, IPV6_URL, Registry};
 use crate::contact::{Contact, Scope};
-use crate::destination::{self, Destinations, PublicResolver};
 use crate::error::Error;
 use crate::query::{DomainName, Query};
 use crate::rdap::Response;
@@ -43,10 +41,6 @@ pub const MAX_BOOTSTRAP_BYTES: usize = 4 * 1024 * 1024;
 /// Build one and keep it. It holds the bootstrap registries and a connection pool,
 /// and both are wasted when a client is built for one lookup.
 ///
-/// The client connects to public addresses only, unless it is built with
-/// [`Destinations::Any`]. A record and a redirect come from outside the process, and
-/// this keeps either from sending the client to a service inside your network.
-///
 /// ```no_run
 /// use abuse_contact::{Client, Scope, rank};
 ///
@@ -65,14 +59,12 @@ pub const MAX_BOOTSTRAP_BYTES: usize = 4 * 1024 * 1024;
 pub struct Client {
     http: reqwest::Client,
     bootstrap: Bootstrap,
-    destinations: Destinations,
 }
 
 impl Client {
     /// Fetches the three bootstrap registries and returns a client.
     ///
-    /// This makes three requests to IANA. Build the client one time. The client
-    /// connects to public addresses only.
+    /// This makes three requests to IANA. Build the client one time.
     ///
     /// # Errors
     ///
@@ -80,35 +72,28 @@ impl Client {
     /// [`Error::TooLarge`] when one is past [`MAX_BOOTSTRAP_BYTES`], and
     /// [`Error::Decode`] when one is not a bootstrap file.
     pub async fn new() -> Result<Self, Error> {
-        let destinations = Destinations::Public;
-        let http = Self::http_client(destinations)?;
+        let http = Self::http_client()?;
         let bootstrap = Bootstrap {
             ipv4: fetch_registry(&http, IPV4_URL).await?,
             ipv6: fetch_registry(&http, IPV6_URL).await?,
             dns: fetch_registry(&http, DNS_URL).await?,
         };
 
-        Ok(Self {
-            http,
-            bootstrap,
-            destinations,
-        })
+        Ok(Self { http, bootstrap })
     }
 
     /// Returns a client that uses registries you already hold.
     ///
     /// Use this to keep the registries between runs, so a short-lived process does
-    /// not fetch them again. Give [`Destinations::Public`] unless every server in the
-    /// registries is one you run.
+    /// not fetch them again.
     ///
     /// # Errors
     ///
     /// Returns [`Error::Transport`] when the HTTP client cannot be built.
-    pub fn with_bootstrap(bootstrap: Bootstrap, destinations: Destinations) -> Result<Self, Error> {
+    pub fn with_bootstrap(bootstrap: Bootstrap) -> Result<Self, Error> {
         Ok(Self {
-            http: Self::http_client(destinations)?,
+            http: Self::http_client()?,
             bootstrap,
-            destinations,
         })
     }
 
@@ -185,33 +170,22 @@ impl Client {
 
     /// Fetches one RDAP record by its URL.
     ///
-    /// Use it to follow a link out of a record you already hold. The URL is used as it
-    /// is given, so it must come from a record and not from outside input.
+    /// Use it to follow a link out of a record you already hold. The client requests
+    /// the URL and follows its redirects wherever they point.
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Refused`] when the URL, or a redirect from it, goes where the
-    /// client does not connect, [`Error::Transport`] when the request does not
-    /// complete, [`Error::Status`] when the server refuses, [`Error::TooLarge`] when the
-    /// body is past [`MAX_RECORD_BYTES`], and [`Error::Decode`] when the body is not
-    /// RDAP.
+    /// Returns [`Error::Transport`] when the request does not complete,
+    /// [`Error::Status`] when the server refuses, [`Error::TooLarge`] when the body is
+    /// past [`MAX_RECORD_BYTES`], and [`Error::Decode`] when the body is not RDAP.
     pub async fn fetch(&self, url: &str, target: &str) -> Result<Option<Record>, Error> {
-        let parsed = reqwest::Url::parse(url).map_err(|problem| Error::Refused {
-            server: url.to_owned(),
-            reason: format!("it is not a URL: {problem}"),
-        })?;
-        destination::check_url(&parsed, self.destinations).map_err(|refusal| Error::Refused {
-            server: url.to_owned(),
-            reason: refusal.reason,
-        })?;
-
         let answer = self
             .http
-            .get(parsed)
+            .get(url)
             .header(reqwest::header::ACCEPT, RDAP_MEDIA_TYPE)
             .send()
             .await
-            .map_err(|source| request_error(url, source))?;
+            .map_err(|source| transport_error(url, source))?;
 
         // Read where the answer came from before the body is read, which uses up the
         // answer. After a redirect this is the last server, not the first.
@@ -246,22 +220,12 @@ impl Client {
     }
 
     /// Builds the HTTP client the crate uses.
-    fn http_client(destinations: Destinations) -> Result<reqwest::Client, Error> {
-        let mut builder = reqwest::Client::builder()
+    fn http_client() -> Result<reqwest::Client, Error> {
+        reqwest::Client::builder()
             .user_agent(USER_AGENT)
             .timeout(TIMEOUT)
-            .redirect(destination::redirect_policy(destinations));
-
-        if destinations == Destinations::Public {
-            // A proxy resolves names where the resolver cannot drop private addresses,
-            // so a public-only client does not use one.
-            builder = builder.dns_resolver(Arc::new(PublicResolver)).no_proxy();
-        }
-
-        builder.build().map_err(|source| Error::Transport {
-            server: "the HTTP client".to_owned(),
-            source: Box::new(source),
-        })
+            .build()
+            .map_err(|source| transport_error("the HTTP client", source))
     }
 }
 
@@ -307,19 +271,10 @@ fn record_url(server: &str, kind: &str, target: &str) -> String {
 }
 
 /// Returns the error for a request that did not complete.
-///
-/// The resolver and the redirect policy report a refusal through the HTTP client. It
-/// comes back here as a transport error, and is turned back into [`Error::Refused`].
-fn request_error(url: &str, source: reqwest::Error) -> Error {
-    match destination::refusal_in(&source) {
-        Some(refusal) => Error::Refused {
-            server: url.to_owned(),
-            reason: refusal.reason.clone(),
-        },
-        None => Error::Transport {
-            server: url.to_owned(),
-            source: Box::new(source),
-        },
+fn transport_error(server: &str, source: reqwest::Error) -> Error {
+    Error::Transport {
+        server: server.to_owned(),
+        source: Box::new(source),
     }
 }
 
@@ -330,7 +285,7 @@ async fn fetch_registry(http: &reqwest::Client, url: &str) -> Result<Registry, E
         .send()
         .await
         .and_then(reqwest::Response::error_for_status)
-        .map_err(|source| request_error(url, source))?;
+        .map_err(|source| transport_error(url, source))?;
 
     let body = read_capped(answer, url, MAX_BOOTSTRAP_BYTES).await?;
 
