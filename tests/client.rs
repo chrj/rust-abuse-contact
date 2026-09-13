@@ -166,7 +166,7 @@ async fn a_private_address_is_refused_before_a_request_goes_out() {
         .mount(&server)
         .await;
 
-    for target in ["192.168.1.1", "127.0.0.1", "10.0.0.1", "fe80::1"] {
+    for target in ["192.168.1.1", "127.0.0.1", "10.0.0.1", "fe80::1", "0.1.2.3"] {
         let error = client_for(&server)
             .lookup_ip(target.parse().unwrap())
             .await
@@ -181,6 +181,48 @@ async fn a_private_address_is_refused_before_a_request_goes_out() {
         let message = error.to_string();
         assert!(message.contains(target), "message was: {message}");
         assert!(message.contains("public address"), "message was: {message}");
+    }
+}
+
+#[tokio::test]
+async fn an_ipv4_address_written_as_ipv6_is_looked_up_as_ipv4() {
+    // The IPv6 registry holds no record for the mapped form, so the request must go
+    // out for the IPv4 address it carries.
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/ip/8.8.8.8"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(RECORD))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let found = client_for(&server)
+        .lookup_ip("::ffff:8.8.8.8".parse().unwrap())
+        .await
+        .unwrap();
+
+    assert!(found.is_some(), "the lookup went out for 8.8.8.8");
+}
+
+#[tokio::test]
+async fn the_ipv6_spelling_of_a_private_address_is_refused() {
+    // Without unmapping, ::ffff:10.0.0.1 passes a check that only reads IPv6 ranges.
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(RECORD))
+        .expect(0)
+        .mount(&server)
+        .await;
+
+    let error = client_for(&server)
+        .lookup_ip("::ffff:10.0.0.1".parse().unwrap())
+        .await
+        .unwrap_err();
+
+    match error {
+        // The error names the IPv4 form, which is the address that was judged.
+        Error::NotPublic { target } => assert_eq!(target, "10.0.0.1"),
+        other => panic!("expected the mapped private address to be refused, got {other:?}"),
     }
 }
 

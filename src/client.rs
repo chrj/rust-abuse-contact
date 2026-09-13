@@ -112,6 +112,9 @@ impl Client {
     ///
     /// The same errors as [`Client::lookup`].
     pub async fn lookup_ip(&self, ip: IpAddr) -> Result<Option<Response>, Error> {
+        // The IPv6 registry holds no record for `::ffff:8.8.8.8`, so ask about the
+        // IPv4 address it carries. The check and the lookup must use the same form.
+        let ip = crate::query::unmap(ip);
         let target = ip.to_string();
 
         // A private address sits in a block a registry describes, so the bootstrap
@@ -155,11 +158,14 @@ impl Client {
 
     /// Fetches one RDAP record by its URL.
     ///
-    /// Use it to follow a link out of a record you already hold.
+    /// Use it to follow a link out of a record you already hold. The URL is used as it
+    /// is given, so it must come from a record and not from outside input.
     ///
     /// # Errors
     ///
-    /// The same errors as [`Client::lookup`], except [`Error::NoServer`].
+    /// Returns [`Error::Transport`] when the request does not complete,
+    /// [`Error::Status`] when the server refuses, and [`Error::Decode`] when the body
+    /// is not RDAP.
     pub async fn fetch(&self, url: &str, target: &str) -> Result<Option<Response>, Error> {
         let answer = self
             .http

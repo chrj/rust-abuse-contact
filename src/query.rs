@@ -44,24 +44,41 @@ impl DomainName {
     }
 
     /// Returns what is wrong with the name, or `None` when it is usable.
+    ///
+    /// A label holds letters, digits and hyphens only, and does not start or end with
+    /// a hyphen. The name goes into a URL path as it is, so a character outside that
+    /// set is a lookup for the wrong name: `foo?.com` asks for `foo` and sends `.com`
+    /// as a query.
     fn problem(value: &str) -> Option<&'static str> {
         if value.len() > Self::MAX_BYTES {
             return Some("it is longer than 253 bytes");
         }
+        if !value.is_ascii() {
+            return Some(
+                "it has a character outside ASCII. Write an international name in its \
+                 xn-- form",
+            );
+        }
         if !value.contains('.') {
             return Some("it has no dot, so it is not a full domain name");
         }
-        if value.split('.').any(|label| label.is_empty()) {
-            return Some("it has an empty label");
-        }
-        if value.split('.').any(|label| label.len() > 63) {
-            return Some("it has a label longer than 63 bytes");
-        }
-        if value
-            .chars()
-            .any(|c| c.is_whitespace() || c.is_control() || c == '@' || c == '/')
-        {
-            return Some("it has a character that cannot be in a domain name");
+
+        for label in value.split('.') {
+            if label.is_empty() {
+                return Some("it has an empty label");
+            }
+            if label.len() > 63 {
+                return Some("it has a label longer than 63 bytes");
+            }
+            if !label
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'-')
+            {
+                return Some("it has a character other than a letter, a digit, a hyphen or a dot");
+            }
+            if label.starts_with('-') || label.ends_with('-') {
+                return Some("a label starts or ends with a hyphen");
+            }
         }
 
         None
@@ -149,6 +166,72 @@ mod tests {
     }
 
     #[test]
+    fn rejects_a_character_that_would_change_the_url() {
+        // Each of these puts URL syntax into the path and asks for another name.
+        for value in [
+            "foo?.com",
+            "foo#x.com",
+            "foo%2f.com",
+            "foo&x.com",
+            "foo;x.com",
+            "foo+x.com",
+        ] {
+            assert_eq!(
+                DomainName::new(value),
+                Err(ValidationError::InvalidDomain {
+                    value: value.to_owned(),
+                    problem: "it has a character other than a letter, a digit, a hyphen or a dot",
+                }),
+                "expected {value:?} to be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_an_international_name_and_says_to_use_the_ascii_form() {
+        assert_eq!(
+            DomainName::new("bücher.de"),
+            Err(ValidationError::InvalidDomain {
+                value: "bücher.de".to_owned(),
+                problem: "it has a character outside ASCII. Write an international name in \
+                          its xn-- form",
+            })
+        );
+    }
+
+    #[test]
+    fn accepts_the_ascii_form_of_an_international_name() {
+        assert_eq!(
+            DomainName::new("xn--bcher-kva.de").unwrap().as_str(),
+            "xn--bcher-kva.de"
+        );
+    }
+
+    #[test]
+    fn rejects_a_label_that_starts_or_ends_with_a_hyphen() {
+        for value in ["-example.com", "example-.com", "example.-com"] {
+            assert!(
+                matches!(
+                    DomainName::new(value),
+                    Err(ValidationError::InvalidDomain {
+                        problem: "a label starts or ends with a hyphen",
+                        ..
+                    })
+                ),
+                "expected {value:?} to be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn accepts_a_hyphen_inside_a_label() {
+        assert_eq!(
+            DomainName::new("my-shop.example.co.uk").unwrap().as_str(),
+            "my-shop.example.co.uk"
+        );
+    }
+
+    #[test]
     fn rejects_a_name_over_the_length_limit() {
         let long = format!("{}.com", "a".repeat(250));
 
@@ -170,62 +253,100 @@ mod tests {
 /// a wrong one: nobody at IANA can act on a host inside your network, and a report
 /// sent there is noise.
 ///
+/// An IPv4 address written as IPv6, such as `::ffff:10.0.0.1`, is judged as the IPv4
+/// address it carries. Without that, the IPv6 spelling of a private address would pass.
+///
 /// ```
 /// use abuse_contact::is_public;
 ///
 /// assert!(is_public("8.8.8.8".parse().unwrap()));
 /// assert!(!is_public("192.168.1.1".parse().unwrap()));
+/// assert!(!is_public("::ffff:192.168.1.1".parse().unwrap()));
 /// ```
 pub fn is_public(ip: IpAddr) -> bool {
+    let ip = unmap(ip);
+    let reserved = match ip {
+        IpAddr::V4(_) => RESERVED_V4,
+        IpAddr::V6(_) => RESERVED_V6,
+    };
+
+    !reserved
+        .iter()
+        .any(|&(network, length)| crate::prefix::contains(network, length, ip))
+}
+
+/// Returns the IPv4 address an IPv4-mapped IPv6 address carries, or the address as
+/// it was.
+///
+/// `::ffff:8.8.8.8` and `8.8.8.8` are one host. The IPv6 registry holds no record for
+/// the mapped form, so both the check and the lookup use the IPv4 form.
+pub(crate) fn unmap(ip: IpAddr) -> IpAddr {
     match ip {
-        IpAddr::V4(ip) => is_public_v4(ip),
-        IpAddr::V6(ip) => is_public_v6(ip),
+        IpAddr::V6(v6) => v6.to_ipv4_mapped().map_or(ip, IpAddr::V4),
+        IpAddr::V4(_) => ip,
     }
 }
 
-/// Returns whether an IPv4 address is one the registries describe.
+/// Writes an IPv4 network for the tables below.
+const fn v4(a: u8, b: u8, c: u8, d: u8) -> IpAddr {
+    IpAddr::V4(std::net::Ipv4Addr::new(a, b, c, d))
+}
+
+/// Writes an IPv6 network for the tables below, from its first four segments.
+const fn v6(a: u16, b: u16, c: u16, d: u16) -> IpAddr {
+    IpAddr::V6(std::net::Ipv6Addr::new(a, b, c, d, 0, 0, 0, 0))
+}
+
+/// IPv4 ranges that no public registry describes a host in.
 ///
-/// The ranges come from the IANA IPv4 Special-Purpose Address Registry. The standard
-/// library covers most of them, and the rest are written out here because their
-/// helpers are not on stable Rust.
-fn is_public_v4(ip: std::net::Ipv4Addr) -> bool {
-    let [a, b, ..] = ip.octets();
+/// From the IANA IPv4 Special-Purpose Address Registry: every range it marks as not
+/// globally reachable.
+const RESERVED_V4: &[(IpAddr, u8)] = &[
+    (v4(0, 0, 0, 0), 8),       // "this network"
+    (v4(10, 0, 0, 0), 8),      // private
+    (v4(100, 64, 0, 0), 10),   // shared address space, for carrier-grade NAT
+    (v4(127, 0, 0, 0), 8),     // loopback
+    (v4(169, 254, 0, 0), 16),  // link-local
+    (v4(172, 16, 0, 0), 12),   // private
+    (v4(192, 0, 0, 0), 24),    // IETF protocol assignments
+    (v4(192, 0, 2, 0), 24),    // documentation
+    (v4(192, 88, 99, 0), 24),  // 6to4 relay anycast, deprecated
+    (v4(192, 168, 0, 0), 16),  // private
+    (v4(198, 18, 0, 0), 15),   // benchmarking
+    (v4(198, 51, 100, 0), 24), // documentation
+    (v4(203, 0, 113, 0), 24),  // documentation
+    (v4(224, 0, 0, 0), 4),     // multicast
+    (v4(240, 0, 0, 0), 4),     // reserved, and the broadcast address
+];
 
-    !(ip.is_unspecified()
-        || ip.is_loopback()
-        || ip.is_private()
-        || ip.is_link_local()
-        || ip.is_documentation()
-        || ip.is_broadcast()
-        || ip.is_multicast()
-        // 100.64.0.0/10, the shared range for carrier-grade NAT.
-        || (a == 100 && (64..128).contains(&b))
-        // 192.0.0.0/24, IETF protocol assignments.
-        || (a == 192 && b == 0 && ip.octets()[2] == 0)
-        // 198.18.0.0/15, for benchmarking.
-        || (a == 198 && (b == 18 || b == 19))
-        // 240.0.0.0/4, reserved.
-        || a >= 240)
-}
-
-/// Returns whether an IPv6 address is one the registries describe.
-fn is_public_v6(ip: std::net::Ipv6Addr) -> bool {
-    let segments = ip.segments();
-
-    !(ip.is_unspecified()
-        || ip.is_loopback()
-        || ip.is_multicast()
-        // fc00::/7, unique local addresses.
-        || (segments[0] & 0xfe00) == 0xfc00
-        // fe80::/10, link-local addresses.
-        || (segments[0] & 0xffc0) == 0xfe80
-        // 2001:db8::/32, for documentation.
-        || (segments[0] == 0x2001 && segments[1] == 0x0db8))
-}
+/// IPv6 ranges that no public registry describes a host in.
+///
+/// From the IANA IPv6 Special-Purpose Address Registry: every range it marks as not
+/// globally reachable, except `::ffff:0:0/96`. An address in that range carries an
+/// IPv4 address, and [`unmap`] turns it into IPv4 before this table is read, so it is
+/// judged by the IPv4 table instead.
+const RESERVED_V6: &[(IpAddr, u8)] = &[
+    (IpAddr::V6(std::net::Ipv6Addr::UNSPECIFIED), 128), // unspecified
+    (IpAddr::V6(std::net::Ipv6Addr::LOCALHOST), 128),   // loopback
+    (v6(0x64, 0xff9b, 1, 0), 48),                       // local-use IPv4/IPv6 translation
+    (v6(0x100, 0, 0, 0), 64),                           // discard-only
+    (v6(0x2001, 0, 0, 0), 23), // IETF protocol assignments, with benchmarking
+    (v6(0x2001, 0xdb8, 0, 0), 32), // documentation
+    (v6(0x2002, 0, 0, 0), 16), // 6to4
+    (v6(0x3fff, 0, 0, 0), 20), // documentation
+    (v6(0x5f00, 0, 0, 0), 16), // segment routing
+    (v6(0xfc00, 0, 0, 0), 7),  // unique local
+    (v6(0xfe80, 0, 0, 0), 10), // link-local
+    (v6(0xff00, 0, 0, 0), 8),  // multicast
+];
 
 #[cfg(test)]
 mod public_tests {
     use super::*;
+
+    fn public(value: &str) -> bool {
+        is_public(value.parse().unwrap())
+    }
 
     #[test]
     fn a_routable_address_is_public() {
@@ -235,41 +356,102 @@ mod public_tests {
             "1.1.1.1",
             "2001:4860:4860::8888",
             "2c00::1",
+            // 64:ff9b::/96 is globally reachable, unlike its local-use neighbour.
+            "64:ff9b::808:808",
+            // Inside 2001:200::/23, an APNIC allocation just past the IETF block.
+            "2001:200::1",
         ] {
-            assert!(is_public(value.parse().unwrap()), "{value} must be public");
+            assert!(public(value), "{value} must be public");
         }
     }
 
     #[test]
-    fn an_address_the_registries_do_not_describe_is_not_public() {
+    fn every_reserved_ipv4_range_is_refused() {
         for value in [
-            "0.0.0.0",         // unspecified
-            "10.1.2.3",        // private
-            "172.16.0.1",      // private
-            "192.168.1.1",     // private
-            "127.0.0.1",       // loopback
-            "169.254.1.1",     // link-local
-            "100.64.0.1",      // carrier-grade NAT
-            "192.0.0.1",       // protocol assignments
-            "192.0.2.1",       // documentation
-            "198.18.0.1",      // benchmarking
-            "198.51.100.1",    // documentation
-            "203.0.113.1",     // documentation
-            "240.0.0.1",       // reserved
-            "255.255.255.255", // broadcast
-            "224.0.0.1",       // multicast
-            "::",              // unspecified
-            "::1",             // loopback
-            "fc00::1",         // unique local
-            "fd12:3456::1",    // unique local
-            "fe80::1",         // link-local
-            "2001:db8::1",     // documentation
-            "ff02::1",         // multicast
+            "0.1.2.3", // "this network", past 0.0.0.0 itself
+            "10.1.2.3",
+            "100.64.0.1",
+            "127.0.0.1",
+            "169.254.1.1",
+            "172.16.0.1",
+            "192.0.0.1",
+            "192.0.2.1",
+            "192.88.99.1",
+            "192.168.1.1",
+            "198.18.0.1",
+            "198.51.100.1",
+            "203.0.113.1",
+            "224.0.0.1",
+            "240.0.0.1",
+            "255.255.255.255",
         ] {
-            assert!(
-                !is_public(value.parse().unwrap()),
-                "{value} must not be public"
-            );
+            assert!(!public(value), "{value} must not be public");
         }
+    }
+
+    #[test]
+    fn every_reserved_ipv6_range_is_refused() {
+        for value in [
+            "::",
+            "::1",
+            "64:ff9b:1::1",
+            "100::1",
+            "2001::1",   // Teredo
+            "2001:2::1", // benchmarking
+            "2001:db8::1",
+            "2002::1",
+            "3fff::1",
+            "5f00::1",
+            "fc00::1",
+            "fd12:3456::1",
+            "fe80::1",
+            "ff02::1",
+        ] {
+            assert!(!public(value), "{value} must not be public");
+        }
+    }
+
+    #[test]
+    fn the_edges_of_a_reserved_range_are_exact() {
+        // 172.16.0.0/12 runs to 172.31.255.255.
+        assert!(!public("172.16.0.0"));
+        assert!(!public("172.31.255.255"));
+        assert!(public("172.15.255.255"));
+        assert!(public("172.32.0.0"));
+
+        // 100.64.0.0/10 runs to 100.127.255.255.
+        assert!(!public("100.127.255.255"));
+        assert!(public("100.128.0.0"));
+        assert!(public("100.63.255.255"));
+
+        // 2001::/23 ends at 2001:1ff:ffff:..., and 2001:200:: is outside it.
+        assert!(!public("2001:1ff:ffff:ffff:ffff:ffff:ffff:ffff"));
+        assert!(public("2001:200::"));
+    }
+
+    #[test]
+    fn an_ipv4_address_written_as_ipv6_is_judged_as_ipv4() {
+        // The IPv6 spelling of a private address must not get past the check.
+        assert!(!public("::ffff:10.0.0.1"));
+        assert!(!public("::ffff:192.168.1.1"));
+        assert!(!public("::ffff:127.0.0.1"));
+        // The IPv6 spelling of a public address stays public.
+        assert!(public("::ffff:8.8.8.8"));
+    }
+
+    #[test]
+    fn unmap_gives_the_ipv4_address_a_mapped_address_carries() {
+        assert_eq!(
+            unmap("::ffff:8.8.8.8".parse().unwrap()),
+            "8.8.8.8".parse::<IpAddr>().unwrap()
+        );
+        assert_eq!(
+            unmap("2001:4860::8888".parse().unwrap()),
+            "2001:4860::8888".parse::<IpAddr>().unwrap()
+        );
+        assert_eq!(
+            unmap("8.8.8.8".parse().unwrap()),
+            "8.8.8.8".parse::<IpAddr>().unwrap()
+        );
     }
 }
