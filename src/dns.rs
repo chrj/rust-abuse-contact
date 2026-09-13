@@ -83,6 +83,25 @@ pub fn rfc2142_contact(domain: &DomainName) -> Result<Contact, crate::Validation
     })
 }
 
+/// Returns whether a domain's MX records name a host that takes mail.
+///
+/// A domain that takes no mail can say so with a null MX, RFC 7505: one MX record
+/// whose host is the root, written `.`. A record like that names no host, so it does
+/// not count. A domain with no MX records at all is a different case, which this does
+/// not decide: RFC 5321 then sends mail to the address of the domain itself.
+///
+/// ```
+/// use abuse_contact::dns::names_a_mail_host;
+///
+/// assert!(names_a_mail_host(["mx1.example.com."]));
+/// assert!(!names_a_mail_host(["."]));
+/// ```
+pub fn names_a_mail_host<'a>(exchanges: impl IntoIterator<Item = &'a str>) -> bool {
+    exchanges
+        .into_iter()
+        .any(|exchange| !exchange.trim_end_matches('.').is_empty())
+}
+
 /// Reads the addresses out of the TXT records a zone returned.
 ///
 /// A record can hold more than one address, joined by commas. A value that is not an
@@ -137,6 +156,29 @@ mod tests {
         assert_eq!(contact.email.as_str(), "abuse@example.com");
         assert_eq!(contact.scope, Scope::Domain);
         assert_eq!(contact.source, Source::Rfc2142);
+    }
+
+    #[test]
+    fn an_mx_that_names_a_host_takes_mail() {
+        assert!(names_a_mail_host(["mx1.example.com."]));
+        assert!(names_a_mail_host(["mx1.example.com"]));
+    }
+
+    #[test]
+    fn a_null_mx_takes_no_mail() {
+        assert!(!names_a_mail_host(["."]));
+        assert!(!names_a_mail_host([""]));
+    }
+
+    #[test]
+    fn a_null_mx_beside_a_real_one_does_not_hide_it() {
+        // RFC 7505 forbids the mix, but the real host still takes mail.
+        assert!(names_a_mail_host([".", "mx1.example.com."]));
+    }
+
+    #[test]
+    fn no_exchanges_names_no_host() {
+        assert!(!names_a_mail_host([]));
     }
 
     #[test]
