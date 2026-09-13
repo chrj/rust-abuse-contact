@@ -132,11 +132,14 @@ fn suffix_matches(name: &str, suffix: &str) -> bool {
 /// Returns the server to use out of the servers a service lists.
 ///
 /// RFC 9224 asks for HTTPS where a service offers it. A few registries list only
-/// HTTP, and the crate uses those rather than refusing to answer for them.
+/// HTTP, and the crate uses those rather than refusing to answer for them. A server
+/// with any other scheme is never picked: the client cannot use it, and picking it
+/// would lose a usable server listed after it.
 fn preferred(urls: &[String]) -> Option<&str> {
-    urls.iter()
-        .find(|url| url.starts_with("https://"))
-        .or_else(|| urls.first())
+    let with_scheme = |scheme: &str| urls.iter().find(|url| url.starts_with(scheme));
+
+    with_scheme("https://")
+        .or_else(|| with_scheme("http://"))
         .map(String::as_str)
 }
 
@@ -232,6 +235,25 @@ mod tests {
             registry(DNS).server_for_domain(&domain),
             Some("http://rdap.cctld.kg/")
         );
+    }
+
+    #[test]
+    fn skips_a_server_with_a_scheme_the_client_cannot_use() {
+        let listed = |urls: &[&str]| urls.iter().map(|url| (*url).to_owned()).collect::<Vec<_>>();
+
+        assert_eq!(
+            preferred(&listed(&["ftp://bad.example/", "http://usable.example/"])),
+            Some("http://usable.example/")
+        );
+        assert_eq!(
+            preferred(&listed(&[
+                "http://plain.example/",
+                "https://secure.example/"
+            ])),
+            Some("https://secure.example/")
+        );
+        assert_eq!(preferred(&listed(&["ftp://bad.example/"])), None);
+        assert_eq!(preferred(&[]), None);
     }
 
     #[test]
