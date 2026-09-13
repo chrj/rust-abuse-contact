@@ -66,6 +66,20 @@ block such an address sits in, and that record names IANA. Answering with it giv
 contact that cannot act on a host inside your own network. The ranges come from the
 IANA special-purpose address registries.
 
+## What the client connects to
+
+A record holds links, and a server sends redirects. Either can point at a service
+inside your own network, such as a cloud metadata endpoint. The client connects to
+public addresses only. It refuses such a link or redirect, and it refuses a name that
+resolves to any address that is not public. On a network with NAT64, it reads the IPv4
+address inside an IPv6 address, because the connection ends there. It does not use a
+proxy from the environment, because a proxy resolves names where that check cannot
+see them.
+
+The client also refuses a redirect from HTTPS to HTTP, and stops after five redirects.
+
+Build a client with `Destinations::Any` only for a registry mirror that you run.
+
 ## Sources
 
 | Source | Target | What it gives |
