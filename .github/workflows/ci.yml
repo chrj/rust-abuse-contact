@@ -33,6 +33,18 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --all-features --locked
 
+  # The crate builds without the HTTP client. Without this job the feature gate rots
+  # the first time a reader reaches for something behind it.
+  no-default-features:
+    name: Build without the default features
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --no-default-features --locked
+      - run: cargo clippy --all-targets --no-default-features --locked
+
   lint:
     name: Format and lint
     runs-on: ubuntu-latest
@@ -67,7 +79,7 @@ jobs:
   # job only, so a change to the job list above does not need a settings change.
   gate:
     name: CI success
-    needs: [test, lint, docs, deny]
+    needs: [test, no-default-features, lint, docs, deny]
     # Without this the job is skipped when a dependency fails, and a required check
     # that never reports blocks every merge.
     if: always()
