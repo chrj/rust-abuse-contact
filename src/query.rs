@@ -161,3 +161,115 @@ mod tests {
         ));
     }
 }
+
+/// Returns whether the public registries describe this address.
+///
+/// A private, reserved or documentation address sits inside a range that a regional
+/// registry still holds a record for. Asking about `192.168.1.1` returns the record
+/// for the reserved block, whose abuse contact is IANA. That address is a real one and
+/// a wrong one: nobody at IANA can act on a host inside your network, and a report
+/// sent there is noise.
+///
+/// ```
+/// use abuse_contact::is_public;
+///
+/// assert!(is_public("8.8.8.8".parse().unwrap()));
+/// assert!(!is_public("192.168.1.1".parse().unwrap()));
+/// ```
+pub fn is_public(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(ip) => is_public_v4(ip),
+        IpAddr::V6(ip) => is_public_v6(ip),
+    }
+}
+
+/// Returns whether an IPv4 address is one the registries describe.
+///
+/// The ranges come from the IANA IPv4 Special-Purpose Address Registry. The standard
+/// library covers most of them, and the rest are written out here because their
+/// helpers are not on stable Rust.
+fn is_public_v4(ip: std::net::Ipv4Addr) -> bool {
+    let [a, b, ..] = ip.octets();
+
+    !(ip.is_unspecified()
+        || ip.is_loopback()
+        || ip.is_private()
+        || ip.is_link_local()
+        || ip.is_documentation()
+        || ip.is_broadcast()
+        || ip.is_multicast()
+        // 100.64.0.0/10, the shared range for carrier-grade NAT.
+        || (a == 100 && (64..128).contains(&b))
+        // 192.0.0.0/24, IETF protocol assignments.
+        || (a == 192 && b == 0 && ip.octets()[2] == 0)
+        // 198.18.0.0/15, for benchmarking.
+        || (a == 198 && (b == 18 || b == 19))
+        // 240.0.0.0/4, reserved.
+        || a >= 240)
+}
+
+/// Returns whether an IPv6 address is one the registries describe.
+fn is_public_v6(ip: std::net::Ipv6Addr) -> bool {
+    let segments = ip.segments();
+
+    !(ip.is_unspecified()
+        || ip.is_loopback()
+        || ip.is_multicast()
+        // fc00::/7, unique local addresses.
+        || (segments[0] & 0xfe00) == 0xfc00
+        // fe80::/10, link-local addresses.
+        || (segments[0] & 0xffc0) == 0xfe80
+        // 2001:db8::/32, for documentation.
+        || (segments[0] == 0x2001 && segments[1] == 0x0db8))
+}
+
+#[cfg(test)]
+mod public_tests {
+    use super::*;
+
+    #[test]
+    fn a_routable_address_is_public() {
+        for value in [
+            "8.8.8.8",
+            "193.0.6.139",
+            "1.1.1.1",
+            "2001:4860:4860::8888",
+            "2c00::1",
+        ] {
+            assert!(is_public(value.parse().unwrap()), "{value} must be public");
+        }
+    }
+
+    #[test]
+    fn an_address_the_registries_do_not_describe_is_not_public() {
+        for value in [
+            "0.0.0.0",         // unspecified
+            "10.1.2.3",        // private
+            "172.16.0.1",      // private
+            "192.168.1.1",     // private
+            "127.0.0.1",       // loopback
+            "169.254.1.1",     // link-local
+            "100.64.0.1",      // carrier-grade NAT
+            "192.0.0.1",       // protocol assignments
+            "192.0.2.1",       // documentation
+            "198.18.0.1",      // benchmarking
+            "198.51.100.1",    // documentation
+            "203.0.113.1",     // documentation
+            "240.0.0.1",       // reserved
+            "255.255.255.255", // broadcast
+            "224.0.0.1",       // multicast
+            "::",              // unspecified
+            "::1",             // loopback
+            "fc00::1",         // unique local
+            "fd12:3456::1",    // unique local
+            "fe80::1",         // link-local
+            "2001:db8::1",     // documentation
+            "ff02::1",         // multicast
+        ] {
+            assert!(
+                !is_public(value.parse().unwrap()),
+                "{value} must not be public"
+            );
+        }
+    }
+}
