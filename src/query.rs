@@ -262,17 +262,33 @@ mod tests {
 /// assert!(is_public("8.8.8.8".parse().unwrap()));
 /// assert!(!is_public("192.168.1.1".parse().unwrap()));
 /// assert!(!is_public("::ffff:192.168.1.1".parse().unwrap()));
+/// // A globally reachable anycast address inside a reserved block.
+/// assert!(is_public("192.0.0.9".parse().unwrap()));
 /// ```
 pub fn is_public(ip: IpAddr) -> bool {
     let ip = unmap(ip);
-    let reserved = match ip {
-        IpAddr::V4(_) => RESERVED_V4,
-        IpAddr::V6(_) => RESERVED_V6,
+    let table = match ip {
+        IpAddr::V4(_) => SPECIAL_V4,
+        IpAddr::V6(_) => SPECIAL_V6,
     };
 
-    !reserved
+    // An address in no special-purpose range is an ordinary allocation.
+    most_specific(table, ip).is_none_or(|reach| reach == Reach::Global)
+}
+
+/// Returns the reach of the most specific range in the table that holds the address.
+///
+/// The registry nests ranges: `192.0.0.9/32` is globally reachable inside
+/// `192.0.0.0/24`, which is not. The most specific row is the one that applies.
+fn most_specific(table: &[(&str, Reach)], ip: IpAddr) -> Option<Reach> {
+    table
         .iter()
-        .any(|&(network, length)| crate::prefix::contains(network, length, ip))
+        .filter_map(|&(range, reach)| {
+            let (network, length) = crate::prefix::parse_range(range)?;
+            crate::prefix::contains(network, length, ip).then_some((length, reach))
+        })
+        .max_by_key(|&(length, _)| length)
+        .map(|(_, reach)| reach)
 }
 
 /// Returns the IPv4 address an IPv4-mapped IPv6 address carries, or the address as
@@ -287,57 +303,86 @@ pub(crate) fn unmap(ip: IpAddr) -> IpAddr {
     }
 }
 
-/// Writes an IPv4 network for the tables below.
-const fn v4(a: u8, b: u8, c: u8, d: u8) -> IpAddr {
-    IpAddr::V4(std::net::Ipv4Addr::new(a, b, c, d))
+/// Whether the special-purpose registry marks a range as globally reachable.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Reach {
+    /// The registry says `True`. A registry describes hosts in the range.
+    Global,
+    /// The registry says `False`, `N/A`, or gives no answer for a deprecated range.
+    ///
+    /// `N/A` is on ranges such as 6to4 and Teredo, which carry another address inside
+    /// them. The range has no single owner to report to, so it is not public here.
+    NotGlobal,
 }
 
-/// Writes an IPv6 network for the tables below, from its first four segments.
-const fn v6(a: u16, b: u16, c: u16, d: u16) -> IpAddr {
-    IpAddr::V6(std::net::Ipv6Addr::new(a, b, c, d, 0, 0, 0, 0))
-}
+use Reach::{Global, NotGlobal};
 
-/// IPv4 ranges that no public registry describes a host in.
+/// The IANA IPv4 Special-Purpose Address Registry, one row per address block.
 ///
-/// From the IANA IPv4 Special-Purpose Address Registry: every range it marks as not
-/// globally reachable.
-const RESERVED_V4: &[(IpAddr, u8)] = &[
-    (v4(0, 0, 0, 0), 8),       // "this network"
-    (v4(10, 0, 0, 0), 8),      // private
-    (v4(100, 64, 0, 0), 10),   // shared address space, for carrier-grade NAT
-    (v4(127, 0, 0, 0), 8),     // loopback
-    (v4(169, 254, 0, 0), 16),  // link-local
-    (v4(172, 16, 0, 0), 12),   // private
-    (v4(192, 0, 0, 0), 24),    // IETF protocol assignments
-    (v4(192, 0, 2, 0), 24),    // documentation
-    (v4(192, 88, 99, 0), 24),  // 6to4 relay anycast, deprecated
-    (v4(192, 168, 0, 0), 16),  // private
-    (v4(198, 18, 0, 0), 15),   // benchmarking
-    (v4(198, 51, 100, 0), 24), // documentation
-    (v4(203, 0, 113, 0), 24),  // documentation
-    (v4(224, 0, 0, 0), 4),     // multicast
-    (v4(240, 0, 0, 0), 4),     // reserved, and the broadcast address
+/// Copied from `iana-ipv4-special-registry-1.csv`. The last row is not in that
+/// registry: it is the multicast range, from the multicast address registry.
+const SPECIAL_V4: &[(&str, Reach)] = &[
+    ("0.0.0.0/8", NotGlobal),
+    ("0.0.0.0/32", NotGlobal),
+    ("10.0.0.0/8", NotGlobal),
+    ("100.64.0.0/10", NotGlobal),
+    ("127.0.0.0/8", NotGlobal),
+    ("169.254.0.0/16", NotGlobal),
+    ("172.16.0.0/12", NotGlobal),
+    ("192.0.0.0/24", NotGlobal),
+    ("192.0.0.0/29", NotGlobal),
+    ("192.0.0.8/32", NotGlobal),
+    ("192.0.0.9/32", Global),
+    ("192.0.0.10/32", Global),
+    ("192.0.0.170/32", NotGlobal),
+    ("192.0.0.171/32", NotGlobal),
+    ("192.0.2.0/24", NotGlobal),
+    ("192.31.196.0/24", Global),
+    ("192.52.193.0/24", Global),
+    ("192.88.99.0/24", NotGlobal), // deprecated, no answer in the registry
+    ("192.88.99.2/32", NotGlobal),
+    ("192.168.0.0/16", NotGlobal),
+    ("192.175.48.0/24", Global),
+    ("198.18.0.0/15", NotGlobal),
+    ("198.51.100.0/24", NotGlobal),
+    ("203.0.113.0/24", NotGlobal),
+    ("240.0.0.0/4", NotGlobal),
+    ("255.255.255.255/32", NotGlobal),
+    ("224.0.0.0/4", NotGlobal),
 ];
 
-/// IPv6 ranges that no public registry describes a host in.
+/// The IANA IPv6 Special-Purpose Address Registry, one row per address block.
 ///
-/// From the IANA IPv6 Special-Purpose Address Registry: every range it marks as not
-/// globally reachable, except `::ffff:0:0/96`. An address in that range carries an
-/// IPv4 address, and [`unmap`] turns it into IPv4 before this table is read, so it is
-/// judged by the IPv4 table instead.
-const RESERVED_V6: &[(IpAddr, u8)] = &[
-    (IpAddr::V6(std::net::Ipv6Addr::UNSPECIFIED), 128), // unspecified
-    (IpAddr::V6(std::net::Ipv6Addr::LOCALHOST), 128),   // loopback
-    (v6(0x64, 0xff9b, 1, 0), 48),                       // local-use IPv4/IPv6 translation
-    (v6(0x100, 0, 0, 0), 64),                           // discard-only
-    (v6(0x2001, 0, 0, 0), 23), // IETF protocol assignments, with benchmarking
-    (v6(0x2001, 0xdb8, 0, 0), 32), // documentation
-    (v6(0x2002, 0, 0, 0), 16), // 6to4
-    (v6(0x3fff, 0, 0, 0), 20), // documentation
-    (v6(0x5f00, 0, 0, 0), 16), // segment routing
-    (v6(0xfc00, 0, 0, 0), 7),  // unique local
-    (v6(0xfe80, 0, 0, 0), 10), // link-local
-    (v6(0xff00, 0, 0, 0), 8),  // multicast
+/// Copied from `iana-ipv6-special-registry-1.csv`, with one row left out and one
+/// added. `::ffff:0:0/96` is left out: [`unmap`] turns such an address into IPv4
+/// before this table is read, so the IPv4 table judges it. The last row is not in
+/// that registry: it is the multicast range, from the multicast address registry.
+const SPECIAL_V6: &[(&str, Reach)] = &[
+    ("::1/128", NotGlobal),
+    ("::/128", NotGlobal),
+    ("64:ff9b::/96", Global),
+    ("64:ff9b:1::/48", NotGlobal),
+    ("100::/64", NotGlobal),
+    ("100:0:0:1::/64", NotGlobal),
+    ("2001::/23", NotGlobal),
+    ("2001::/32", NotGlobal), // Teredo, N/A in the registry
+    ("2001:1::1/128", Global),
+    ("2001:1::2/128", Global),
+    ("2001:1::3/128", Global),
+    ("2001:2::/48", NotGlobal),
+    ("2001:3::/32", Global),
+    ("2001:4:112::/48", Global),
+    ("2001:10::/28", NotGlobal), // deprecated, no answer in the registry
+    ("2001:20::/28", Global),
+    ("2001:30::/28", Global),
+    ("2001:db8::/32", NotGlobal),
+    ("2002::/16", NotGlobal), // 6to4, N/A in the registry
+    ("2620:4f:8000::/48", Global),
+    ("3fff::/20", NotGlobal),
+    ("5f00::/16", NotGlobal),
+    ("fc00::/7", NotGlobal),
+    ("fe80::/10", NotGlobal),
+    ("ff00::/8", NotGlobal),
 ];
 
 #[cfg(test)]
@@ -349,6 +394,29 @@ mod public_tests {
     }
 
     #[test]
+    fn every_row_of_the_tables_is_a_range() {
+        // most_specific skips a row it cannot read. This keeps that from happening.
+        for &(range, _) in SPECIAL_V4.iter().chain(SPECIAL_V6) {
+            assert!(
+                crate::prefix::parse_range(range).is_some(),
+                "{range:?} is not a range"
+            );
+        }
+    }
+
+    #[test]
+    fn every_row_is_of_the_family_of_its_table() {
+        for &(range, _) in SPECIAL_V4 {
+            let (network, _) = crate::prefix::parse_range(range).unwrap();
+            assert!(network.is_ipv4(), "{range} is in the IPv4 table");
+        }
+        for &(range, _) in SPECIAL_V6 {
+            let (network, _) = crate::prefix::parse_range(range).unwrap();
+            assert!(network.is_ipv6(), "{range} is in the IPv6 table");
+        }
+    }
+
+    #[test]
     fn a_routable_address_is_public() {
         for value in [
             "8.8.8.8",
@@ -356,9 +424,7 @@ mod public_tests {
             "1.1.1.1",
             "2001:4860:4860::8888",
             "2c00::1",
-            // 64:ff9b::/96 is globally reachable, unlike its local-use neighbour.
             "64:ff9b::808:808",
-            // Inside 2001:200::/23, an APNIC allocation just past the IETF block.
             "2001:200::1",
         ] {
             assert!(public(value), "{value} must be public");
@@ -366,15 +432,18 @@ mod public_tests {
     }
 
     #[test]
-    fn every_reserved_ipv4_range_is_refused() {
+    fn every_ipv4_range_that_is_not_globally_reachable_is_refused() {
         for value in [
-            "0.1.2.3", // "this network", past 0.0.0.0 itself
+            "0.1.2.3",
             "10.1.2.3",
             "100.64.0.1",
             "127.0.0.1",
             "169.254.1.1",
             "172.16.0.1",
             "192.0.0.1",
+            "192.0.0.8",
+            "192.0.0.11",
+            "192.0.0.170",
             "192.0.2.1",
             "192.88.99.1",
             "192.168.1.1",
@@ -390,14 +459,17 @@ mod public_tests {
     }
 
     #[test]
-    fn every_reserved_ipv6_range_is_refused() {
+    fn every_ipv6_range_that_is_not_globally_reachable_is_refused() {
         for value in [
             "::",
             "::1",
             "64:ff9b:1::1",
             "100::1",
-            "2001::1",   // Teredo
-            "2001:2::1", // benchmarking
+            "100:0:0:1::1",
+            "2001::1",
+            "2001:1::4",
+            "2001:2::1",
+            "2001:10::1",
             "2001:db8::1",
             "2002::1",
             "3fff::1",
@@ -412,31 +484,55 @@ mod public_tests {
     }
 
     #[test]
+    fn a_globally_reachable_ipv4_address_inside_a_reserved_block_is_public() {
+        // 192.0.0.0/24 is not globally reachable, but these two anycast addresses are.
+        assert!(public("192.0.0.9"), "Port Control Protocol anycast");
+        assert!(public("192.0.0.10"), "TURN anycast");
+    }
+
+    #[test]
+    fn a_globally_reachable_ipv6_range_inside_the_ietf_block_is_public() {
+        // 2001::/23 is not globally reachable, but each of these is.
+        for (value, name) in [
+            ("2001:1::1", "Port Control Protocol anycast"),
+            ("2001:1::2", "TURN anycast"),
+            ("2001:1::3", "DNS-SD Service Registration Protocol anycast"),
+            ("2001:3::1", "AMT"),
+            ("2001:4:112::1", "AS112-v6"),
+            ("2001:20::1", "ORCHIDv2"),
+            ("2001:30::1", "Drone Remote ID"),
+        ] {
+            assert!(public(value), "{value} ({name}) must be public");
+        }
+    }
+
+    #[test]
     fn the_edges_of_a_reserved_range_are_exact() {
-        // 172.16.0.0/12 runs to 172.31.255.255.
         assert!(!public("172.16.0.0"));
         assert!(!public("172.31.255.255"));
         assert!(public("172.15.255.255"));
         assert!(public("172.32.0.0"));
 
-        // 100.64.0.0/10 runs to 100.127.255.255.
         assert!(!public("100.127.255.255"));
         assert!(public("100.128.0.0"));
         assert!(public("100.63.255.255"));
 
-        // 2001::/23 ends at 2001:1ff:ffff:..., and 2001:200:: is outside it.
         assert!(!public("2001:1ff:ffff:ffff:ffff:ffff:ffff:ffff"));
         assert!(public("2001:200::"));
+
+        // The edges of a globally reachable range inside a reserved one.
+        assert!(public("2001:3::"));
+        assert!(public("2001:3:ffff:ffff:ffff:ffff:ffff:ffff"));
+        assert!(!public("2001:4::"));
     }
 
     #[test]
     fn an_ipv4_address_written_as_ipv6_is_judged_as_ipv4() {
-        // The IPv6 spelling of a private address must not get past the check.
         assert!(!public("::ffff:10.0.0.1"));
         assert!(!public("::ffff:192.168.1.1"));
         assert!(!public("::ffff:127.0.0.1"));
-        // The IPv6 spelling of a public address stays public.
         assert!(public("::ffff:8.8.8.8"));
+        assert!(public("::ffff:192.0.0.9"));
     }
 
     #[test]

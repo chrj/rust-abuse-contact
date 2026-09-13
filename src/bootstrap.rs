@@ -110,9 +110,7 @@ impl Registry {
 ///
 /// A range of another address family never holds it.
 fn prefix_length_containing(range: &str, ip: IpAddr) -> Option<u8> {
-    let (network, length) = range.split_once('/')?;
-    let network: IpAddr = network.parse().ok()?;
-    let length: u8 = length.parse().ok()?;
+    let (network, length) = crate::prefix::parse_range(range)?;
 
     crate::prefix::contains(network, length, ip).then_some(length)
 }

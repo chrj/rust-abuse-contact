@@ -2,6 +2,14 @@
 
 use std::net::IpAddr;
 
+/// Reads a range written as `network/length`, such as `10.0.0.0/8` or `2001:db8::/32`.
+///
+/// Returns `None` for text in another shape.
+pub(crate) fn parse_range(range: &str) -> Option<(IpAddr, u8)> {
+    let (network, length) = range.split_once('/')?;
+    Some((network.parse().ok()?, length.parse().ok()?))
+}
+
 /// Returns whether the network of this length holds the address.
 ///
 /// A network of the other address family never holds it. A length past the width of
@@ -38,6 +46,25 @@ mod tests {
 
     fn ip(value: &str) -> IpAddr {
         value.parse().unwrap()
+    }
+
+    #[test]
+    fn reads_a_range() {
+        assert_eq!(parse_range("10.0.0.0/8"), Some((ip("10.0.0.0"), 8)));
+        assert_eq!(parse_range("2001:db8::/32"), Some((ip("2001:db8::"), 32)));
+    }
+
+    #[test]
+    fn a_range_in_another_shape_reads_as_nothing() {
+        for text in [
+            "10.0.0.0",
+            "10.0.0.0/",
+            "/8",
+            "10.0.0.0/eight",
+            "not-a-range",
+        ] {
+            assert_eq!(parse_range(text), None, "{text:?}");
+        }
     }
 
     #[test]
