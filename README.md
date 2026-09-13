@@ -51,6 +51,9 @@ if let Some(record) = client.lookup_ip("8.8.8.8".parse()?).await? {
 The record carries the server that answered, after any redirect, and each contact
 names it as its source.
 
+The client reads at most 1 MiB of a record and 4 MiB of a bootstrap registry. A server
+that sends more is refused, so it cannot use up the memory of the process.
+
 There is a runnable version of this:
 
 ```sh
@@ -67,12 +70,13 @@ IANA special-purpose address registries.
 
 A record holds links, and a server sends redirects. Either can point at a service
 inside your own network, such as a cloud metadata endpoint. The client connects to
-public addresses only: it refuses such a link or redirect, and it drops every private
-address a name resolves to. It does not use a proxy from the environment, because a
-proxy resolves names where that check cannot see them.
+public addresses only. It refuses such a link or redirect, and it refuses a name that
+resolves to any address that is not public. On a network with NAT64, it reads the IPv4
+address inside an IPv6 address, because the connection ends there. It does not use a
+proxy from the environment, because a proxy resolves names where that check cannot
+see them.
 
 The client also refuses a redirect from HTTPS to HTTP, and stops after five redirects.
-It reads at most 1 MiB of a record and 4 MiB of a bootstrap registry.
 
 Build a client with `Destinations::Any` only for a registry mirror that you run.
 
