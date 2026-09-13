@@ -111,30 +111,10 @@ impl Registry {
 /// A range of another address family never holds it.
 fn prefix_length_containing(range: &str, ip: IpAddr) -> Option<u8> {
     let (network, length) = range.split_once('/')?;
+    let network: IpAddr = network.parse().ok()?;
     let length: u8 = length.parse().ok()?;
 
-    match (network.parse().ok()?, ip) {
-        (IpAddr::V4(network), IpAddr::V4(ip)) if length <= 32 => {
-            same_prefix(u32::from(network), u32::from(ip), length, 32).then_some(length)
-        }
-        (IpAddr::V6(network), IpAddr::V6(ip)) if length <= 128 => {
-            same_prefix(u128::from(network), u128::from(ip), length, 128).then_some(length)
-        }
-        _ => None,
-    }
-}
-
-/// Returns whether two addresses agree on their first `length` bits.
-fn same_prefix<T>(network: T, ip: T, length: u8, bits: u8) -> bool
-where
-    T: std::ops::Shr<u32, Output = T> + PartialEq,
-{
-    // A shift by the full width is undefined, and a zero-length prefix holds every
-    // address, so that case answers before the shift.
-    if length == 0 {
-        return true;
-    }
-    network >> u32::from(bits - length) == ip >> u32::from(bits - length)
+    crate::prefix::contains(network, length, ip).then_some(length)
 }
 
 /// Returns whether the name sits at or under the suffix.

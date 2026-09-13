@@ -100,6 +100,7 @@ pub mod rdap;
 mod client;
 mod contact;
 mod error;
+mod prefix;
 mod query;
 
 #[cfg(feature = "http")]
