@@ -287,8 +287,10 @@ fn most_specific(table: &[(&str, Reach)], ip: IpAddr) -> Option<Reach> {
     table
         .iter()
         .filter_map(|&(range, reach)| {
-            let (network, length) = crate::prefix::parse_range(range)?;
-            crate::prefix::contains(network, length, ip).then_some((length, reach))
+            let network: ipnet::IpNet = range.parse().ok()?;
+            network
+                .contains(&ip)
+                .then_some((network.prefix_len(), reach))
         })
         .max_by_key(|&(length, _)| length)
         .map(|(_, reach)| reach)
@@ -310,9 +312,9 @@ pub(crate) fn unmap(ip: IpAddr) -> IpAddr {
         return IpAddr::V4(v4);
     }
 
-    let (prefix, length) = crate::nat64::WELL_KNOWN_PREFIX;
-    if crate::prefix::contains(IpAddr::V6(prefix), length, ip)
-        && let Some(v4) = crate::nat64::embedded_ipv4(v6, length)
+    let well_known = crate::nat64::WELL_KNOWN_PREFIX;
+    if well_known.contains(&v6)
+        && let Some(v4) = crate::nat64::embedded_ipv4(v6, well_known.prefix_len())
     {
         return IpAddr::V4(v4);
     }
@@ -415,7 +417,7 @@ mod public_tests {
         // most_specific skips a row it cannot read. This keeps that from happening.
         for &(range, _) in SPECIAL_V4.iter().chain(SPECIAL_V6) {
             assert!(
-                crate::prefix::parse_range(range).is_some(),
+                range.parse::<ipnet::IpNet>().is_ok(),
                 "{range:?} is not a range"
             );
         }
@@ -424,12 +426,12 @@ mod public_tests {
     #[test]
     fn every_row_is_of_the_family_of_its_table() {
         for &(range, _) in SPECIAL_V4 {
-            let (network, _) = crate::prefix::parse_range(range).unwrap();
-            assert!(network.is_ipv4(), "{range} is in the IPv4 table");
+            let network: ipnet::IpNet = range.parse().unwrap();
+            assert!(network.addr().is_ipv4(), "{range} is in the IPv4 table");
         }
         for &(range, _) in SPECIAL_V6 {
-            let (network, _) = crate::prefix::parse_range(range).unwrap();
-            assert!(network.is_ipv6(), "{range} is in the IPv6 table");
+            let network: ipnet::IpNet = range.parse().unwrap();
+            assert!(network.addr().is_ipv6(), "{range} is in the IPv6 table");
         }
     }
 

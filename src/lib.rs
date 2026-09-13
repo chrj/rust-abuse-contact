@@ -103,7 +103,6 @@ mod contact;
 mod destination;
 mod error;
 mod nat64;
-mod prefix;
 mod query;
 
 #[cfg(feature = "http")]

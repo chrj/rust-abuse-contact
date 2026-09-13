@@ -9,6 +9,8 @@ use std::error::Error as StdError;
 use std::fmt;
 use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 
+use ipnet::Ipv6Net;
+
 use reqwest::Url;
 use reqwest::dns::{Addrs, Name, Resolve, Resolving};
 
@@ -164,7 +166,7 @@ impl Resolve for PublicResolver {
 ///
 /// A network without DNS64 answers `ipv4only.arpa` with IPv4 addresses only, and this
 /// gives no prefix.
-async fn discover_nat64() -> std::io::Result<Vec<(Ipv6Addr, u8)>> {
+async fn discover_nat64() -> std::io::Result<Vec<Ipv6Net>> {
     let answer: Vec<Ipv6Addr> = tokio::net::lookup_host((crate::nat64::DISCOVERY_NAME, 0))
         .await?
         .filter_map(|address| match address.ip() {
@@ -191,7 +193,7 @@ async fn discover_nat64() -> std::io::Result<Vec<(Ipv6Addr, u8)>> {
 pub(crate) fn usable_addresses(
     host: &str,
     found: &[SocketAddr],
-    nat64: Option<&[(Ipv6Addr, u8)]>,
+    nat64: Option<&[Ipv6Net]>,
 ) -> Result<Vec<SocketAddr>, Refusal> {
     let mut usable = Vec::new();
     let mut unchecked = false;
@@ -442,7 +444,7 @@ mod tests {
     fn an_address_under_a_discovered_nat64_prefix_is_judged_by_the_ipv4_address_inside() {
         // The prefix must be an ordinary public one. Under a documentation prefix such
         // as 2001:db8::/32 the address is refused before the NAT64 check is reached.
-        let prefixes = [("2c00:64::".parse().unwrap(), 96)];
+        let prefixes: [Ipv6Net; 1] = ["2c00:64::/96".parse().unwrap()];
         assert!(crate::is_public("2c00:64::a9fe:a9fe".parse().unwrap()));
 
         let refused = usable_addresses(

@@ -12,12 +12,14 @@
 
 use std::net::{Ipv4Addr, Ipv6Addr};
 
+use ipnet::Ipv6Net;
+
 /// The NAT64 well-known prefix, `64:ff9b::/96`, from RFC 6052.
 ///
 /// Every network that uses it puts the IPv4 address in the last 32 bits, so an
 /// address under it is read without learning anything about the network.
-pub(crate) const WELL_KNOWN_PREFIX: (Ipv6Addr, u8) =
-    (Ipv6Addr::new(0x64, 0xff9b, 0, 0, 0, 0, 0, 0), 96);
+pub(crate) const WELL_KNOWN_PREFIX: Ipv6Net =
+    Ipv6Net::new_assert(Ipv6Addr::new(0x64, 0xff9b, 0, 0, 0, 0, 0, 0), 96);
 
 #[cfg(feature = "http")]
 /// The name RFC 7050 gives for learning the NAT64 prefix of a network.
@@ -66,7 +68,7 @@ pub(crate) fn embedded_ipv4(address: Ipv6Addr, length: u8) -> Option<Ipv4Addr> {
 /// RFC 7050 section 3: an IPv6 address for that name is a NAT64 prefix with one of
 /// the two known IPv4 addresses inside. Where one of them sits gives the length, and
 /// the bits before it give the prefix. An address with neither inside shows no prefix.
-pub(crate) fn prefixes_from_discovery(addresses: &[Ipv6Addr]) -> Vec<(Ipv6Addr, u8)> {
+pub(crate) fn prefixes_from_discovery(addresses: &[Ipv6Addr]) -> Vec<Ipv6Net> {
     let mut prefixes = Vec::new();
 
     for &address in addresses {
@@ -77,7 +79,10 @@ pub(crate) fn prefixes_from_discovery(addresses: &[Ipv6Addr]) -> Vec<(Ipv6Addr, 
             if !DISCOVERY_ADDRESSES.contains(&v4) {
                 continue;
             }
-            let prefix = (keep_prefix(address, length), length);
+            // Every length in PREFIX_LENGTHS is at most 128, so the prefix is valid.
+            let Ok(prefix) = Ipv6Net::new(address, length).map(|net| net.trunc()) else {
+                continue;
+            };
             if !prefixes.contains(&prefix) {
                 prefixes.push(prefix);
             }
@@ -88,30 +93,16 @@ pub(crate) fn prefixes_from_discovery(addresses: &[Ipv6Addr]) -> Vec<(Ipv6Addr, 
 }
 
 #[cfg(feature = "http")]
-/// Returns the address with every bit after the prefix set to zero.
-fn keep_prefix(address: Ipv6Addr, length: u8) -> Ipv6Addr {
-    let bits = u128::from(address);
-    let mask = u128::MAX.checked_shl(u32::from(128 - length)).unwrap_or(0);
-    Ipv6Addr::from(bits & mask)
-}
-
-#[cfg(feature = "http")]
 /// Returns every IPv4 address that a connection to this address can end at.
 ///
 /// The well-known prefix is always read. A discovered prefix is read when it holds
 /// the address. An address under no NAT64 prefix carries no IPv4 address, and the
 /// list is empty.
-pub(crate) fn translations(address: Ipv6Addr, discovered: &[(Ipv6Addr, u8)]) -> Vec<Ipv4Addr> {
+pub(crate) fn translations(address: Ipv6Addr, discovered: &[Ipv6Net]) -> Vec<Ipv4Addr> {
     std::iter::once(WELL_KNOWN_PREFIX)
         .chain(discovered.iter().copied())
-        .filter(|&(prefix, length)| {
-            crate::prefix::contains(
-                std::net::IpAddr::V6(prefix),
-                length,
-                std::net::IpAddr::V6(address),
-            )
-        })
-        .filter_map(|(_, length)| embedded_ipv4(address, length))
+        .filter(|prefix| prefix.contains(&address))
+        .filter_map(|prefix| embedded_ipv4(address, prefix.prefix_len()))
         .collect()
 }
 
@@ -120,6 +111,11 @@ mod tests {
     use super::*;
 
     fn v6(value: &str) -> Ipv6Addr {
+        value.parse().unwrap()
+    }
+
+    #[cfg(feature = "http")]
+    fn net(value: &str) -> Ipv6Net {
         value.parse().unwrap()
     }
 
@@ -172,7 +168,7 @@ mod tests {
 
         assert_eq!(
             prefixes_from_discovery(&answer),
-            vec![(v6("2001:db8:122:344::"), 96)]
+            vec![net("2001:db8:122:344::/96")]
         );
     }
 
@@ -184,7 +180,7 @@ mod tests {
 
         assert_eq!(
             prefixes_from_discovery(&answer),
-            vec![(v6("2001:db8:100::"), 40)]
+            vec![net("2001:db8:100::/40")]
         );
     }
 
@@ -193,9 +189,9 @@ mod tests {
     fn an_answer_with_no_known_address_inside_shows_no_prefix() {
         assert_eq!(
             prefixes_from_discovery(&[v6("2001:db8::1")]),
-            Vec::<(Ipv6Addr, u8)>::new()
+            Vec::<Ipv6Net>::new()
         );
-        assert_eq!(prefixes_from_discovery(&[]), Vec::<(Ipv6Addr, u8)>::new());
+        assert_eq!(prefixes_from_discovery(&[]), Vec::<Ipv6Net>::new());
     }
 
     #[cfg(feature = "http")]
@@ -211,7 +207,7 @@ mod tests {
     #[cfg(feature = "http")]
     #[test]
     fn a_discovered_prefix_is_read_for_an_address_under_it() {
-        let discovered = [(v6("2001:db8:122:344::"), 96)];
+        let discovered = [net("2001:db8:122:344::/96")];
 
         assert_eq!(
             translations(v6("2001:db8:122:344::a9fe:a9fe"), &discovered),
@@ -222,7 +218,7 @@ mod tests {
     #[cfg(feature = "http")]
     #[test]
     fn an_address_under_no_nat64_prefix_carries_no_ipv4_address() {
-        let discovered = [(v6("2001:db8:122:344::"), 96)];
+        let discovered = [net("2001:db8:122:344::/96")];
 
         assert_eq!(
             translations(v6("2001:4860:4860::8888"), &discovered),

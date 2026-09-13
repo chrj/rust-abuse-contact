@@ -16,6 +16,8 @@ default = ["http"]
 http = ["dep:reqwest", "dep:tokio"]
 
 [dependencies]
+# Address ranges. The HTTP client already depends on it.
+ipnet = "2"
 # The body is read as text and parsed here, so the "json" feature is not needed.
 reqwest = { version = "0.12", optional = true, default-features = false, features = [
     "rustls-tls",
