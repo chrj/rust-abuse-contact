@@ -2,6 +2,11 @@
 # Compare the public API against the released version and refuse a version number
 # that is too small for the change.
 semver_check = true
+# Before 1.0, Cargo treats 0.x.y to 0.x.(y+1) as compatible and updates to it without
+# asking. A feature here can add default dependencies or refuse input the last release
+# took, and the API check cannot see either. A minor version keeps such a release from
+# reaching users who did not choose it.
+features_always_increment_minor = true
 changelog_update = true
 git_release_enable = true
 git_release_draft = false
