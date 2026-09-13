@@ -41,12 +41,15 @@ use abuse_contact::{Client, Scope, rank};
 
 let client = Client::new().await?;
 
-if let Some(response) = client.lookup_ip("8.8.8.8".parse()?).await? {
-    for contact in rank(response.abuse_contacts(Scope::Network, "rdap.arin.net")) {
+if let Some(record) = client.lookup_ip("8.8.8.8".parse()?).await? {
+    for contact in rank(record.abuse_contacts(Scope::Network)) {
         println!("{} ({:?})", contact.email, contact.scope);
     }
 }
 ```
+
+The record carries the server that answered, after any redirect, and each contact
+names it as its source.
 
 There is a runnable version of this:
 
