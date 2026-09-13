@@ -20,10 +20,51 @@ cargo add abuse-contact
 
 ## State
 
-The part that decides what an answer means is written and tested. The part that
-fetches an answer is not: it needs an HTTP client for RDAP and a resolver for the DNS
-zones. Until then, fetch with the client you already have and give the result to this
-crate.
+RDAP is fetched. `Client` picks the server from the IANA bootstrap registries and
+returns the record.
+
+The DNS zones are not fetched yet. `dns` builds the names to ask for and reads the
+answers, but nothing asks. For AFRINIC space, where RDAP publishes no abuse entity,
+those zones are the only source that answers.
+
+The client sits behind the `http` feature, which is on by default. Turn it off to take
+the readers alone, with no HTTP stack:
+
+```sh
+cargo add abuse-contact --no-default-features
+```
+
+## Look up an address
+
+```rust
+use abuse_contact::{Client, Scope, rank};
+
+let client = Client::new().await?;
+
+if let Some(record) = client.lookup_ip("8.8.8.8".parse()?).await? {
+    for contact in rank(record.abuse_contacts(Scope::Network)) {
+        println!("{} ({:?})", contact.email, contact.scope);
+    }
+}
+```
+
+The record carries the server that answered, after any redirect, and each contact
+names it as its source.
+
+The client reads at most 1 MiB of a record and 4 MiB of a bootstrap registry. A server
+that sends more is refused, so it cannot use up the memory of the process.
+
+There is a runnable version of this:
+
+```sh
+cargo run --example lookup -- 8.8.8.8
+cargo run --example lookup -- example.com
+```
+
+A private or reserved address is refused. A regional registry holds a record for the
+block such an address sits in, and that record names IANA. Answering with it gives a
+contact that cannot act on a host inside your own network. The ranges come from the
+IANA special-purpose address registries.
 
 ## Sources
 
@@ -122,10 +163,7 @@ The crate finds contacts. It does not send mail.
 
 ## Next
 
-1. An HTTP client for RDAP, with the IANA bootstrap registry to pick the server.
-2. A resolver for the Abusix and abuse.net zones.
-3. A cache. The regional registries limit how often you can ask, and a report run
-   asks about the same networks again and again.
+The open work is on the [issue tracker](https://github.com/chrj/rust-abuse-contact/issues).
 
 ## Tests
 

@@ -11,6 +11,12 @@ version = 2
 # you read the licence.
 allow = [
     "Apache-2.0",
+    # subtle, a constant-time helper under the rustls stack.
+    "BSD-3-Clause",
+    # webpki-roots, which carries the Mozilla root certificate store.
+    "CDLA-Permissive-2.0",
+    # ring, rustls-webpki and untrusted, under the rustls stack.
+    "ISC",
     "MIT",
     # unicode-ident, which carries tables derived from the Unicode database.
     "Unicode-3.0",
