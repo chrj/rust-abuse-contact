@@ -23,15 +23,49 @@ cargo add abuse-contact
 RDAP is fetched. `Client` picks the server from the IANA bootstrap registries and
 returns the record.
 
-The DNS zones are not fetched yet. `dns` builds the names to ask for and reads the
-answers, but nothing asks. For AFRINIC space, where RDAP publishes no abuse entity,
-those zones are the only source that answers.
+The DNS sources are looked up. `Resolver` asks the Abusix and abuse.net zones, and
+checks that a domain takes mail before it gives `abuse@` at the domain. For AFRINIC
+space, where RDAP publishes no abuse entity, Abusix is the only source that answers.
 
-The client sits behind the `http` feature, which is on by default. Turn it off to take
-the readers alone, with no HTTP stack:
+Each source is its own call. One call that asks every source and merges the answers
+is not written yet.
+
+`Client` sits behind the `http` feature and `Resolver` behind the `dns` feature. Both
+are on by default. Turn them off to take the readers alone, with no HTTP stack and no
+resolver:
 
 ```sh
 cargo add abuse-contact --no-default-features
+```
+
+## Ask the DNS sources
+
+```rust
+use abuse_contact::Resolver;
+
+let resolver = Resolver::new()?;
+
+// AFRINIC publishes no abuse contact in RDAP. Abusix has one.
+let network = resolver.abusix("196.216.2.1".parse()?).await?;
+
+let domain = "example.com".parse()?;
+let operator = resolver.abuse_net(&domain).await?;
+let guess = resolver.rfc2142(&domain).await?;
+```
+
+A name that a zone does not hold gives no contacts, not an error. A lookup that gets
+no answer, such as a server failure, is an error, so a failing zone does not look like
+a zone with nothing to say.
+
+`rfc2142` gives `abuse@` at the domain only when the domain takes mail: it has an MX
+record that names a host, or no MX record and an address of its own. A domain with a
+null MX, RFC 7505, gives `None`.
+
+There is a runnable version of this:
+
+```sh
+cargo run --example zones -- 196.216.2.1
+cargo run --example zones -- google.com
 ```
 
 ## Look up an address
