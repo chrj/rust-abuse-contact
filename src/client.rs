@@ -1,14 +1,15 @@
 //! The RDAP client.
 //!
 //! The client picks the server from the IANA bootstrap registries and fetches the
-//! record. It does not decide what the record means: give the answer to
-//! [`Response::abuse_contacts`](crate::rdap::Response::abuse_contacts).
+//! record. It returns the record with the server that answered, and
+//! [`Record::abuse_contacts`] reads the contacts out of it.
 
 use std::net::IpAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
 use crate::bootstrap::{Bootstrap, DNS_URL, IPV4_URL, IPV6_URL, Registry};
+use crate::contact::{Contact, Scope};
 use crate::destination::{self, Destinations, PublicResolver};
 use crate::error::Error;
 use crate::query::{DomainName, Query};
@@ -52,8 +53,8 @@ pub const MAX_BOOTSTRAP_BYTES: usize = 4 * 1024 * 1024;
 /// # async fn run() -> Result<(), abuse_contact::Error> {
 /// let client = Client::new().await?;
 ///
-/// if let Some(response) = client.lookup_ip("8.8.8.8".parse().unwrap()).await? {
-///     for contact in rank(response.abuse_contacts(Scope::Network, "rdap.arin.net")) {
+/// if let Some(record) = client.lookup_ip("8.8.8.8".parse().unwrap()).await? {
+///     for contact in rank(record.abuse_contacts(Scope::Network)) {
 ///         println!("{} ({:?})", contact.email, contact.scope);
 ///     }
 /// }
@@ -125,7 +126,7 @@ impl Client {
     /// Returns [`Error::NotPublic`] for a private or reserved address,
     /// [`Error::NoServer`] when no registry answers for the target, and the errors of
     /// [`Client::fetch`].
-    pub async fn lookup(&self, query: impl Into<Query>) -> Result<Option<Response>, Error> {
+    pub async fn lookup(&self, query: impl Into<Query>) -> Result<Option<Record>, Error> {
         match query.into() {
             Query::Ip(ip) => self.lookup_ip(ip).await,
             Query::Domain(domain) => self.lookup_domain(&domain).await,
@@ -137,7 +138,7 @@ impl Client {
     /// # Errors
     ///
     /// The same errors as [`Client::lookup`].
-    pub async fn lookup_ip(&self, ip: IpAddr) -> Result<Option<Response>, Error> {
+    pub async fn lookup_ip(&self, ip: IpAddr) -> Result<Option<Record>, Error> {
         // The IPv6 registry holds no record for `::ffff:8.8.8.8`, so ask about the
         // IPv4 address it carries. The check and the lookup must use the same form.
         let ip = crate::query::unmap(ip);
@@ -163,13 +164,13 @@ impl Client {
     /// Fetches the record for a name.
     ///
     /// The record names the registrar and carries its abuse address. Follow
-    /// [`Response::related_href`](crate::rdap::Response::related_href) with
-    /// [`Client::fetch`] only when you want what the registry leaves out.
+    /// [`Response::related_href`] on [`Record::response`] with [`Client::fetch`] only
+    /// when you want what the registry leaves out.
     ///
     /// # Errors
     ///
     /// The same errors as [`Client::lookup`].
-    pub async fn lookup_domain(&self, domain: &DomainName) -> Result<Option<Response>, Error> {
+    pub async fn lookup_domain(&self, domain: &DomainName) -> Result<Option<Record>, Error> {
         let target = domain.as_str().to_owned();
         let server = self
             .bootstrap
@@ -194,7 +195,7 @@ impl Client {
     /// complete, [`Error::Status`] when the server refuses, [`Error::TooLarge`] when the
     /// body is past [`MAX_RECORD_BYTES`], and [`Error::Decode`] when the body is not
     /// RDAP.
-    pub async fn fetch(&self, url: &str, target: &str) -> Result<Option<Response>, Error> {
+    pub async fn fetch(&self, url: &str, target: &str) -> Result<Option<Record>, Error> {
         let parsed = reqwest::Url::parse(url).map_err(|problem| Error::Refused {
             server: url.to_owned(),
             reason: format!("it is not a URL: {problem}"),
@@ -212,6 +213,10 @@ impl Client {
             .await
             .map_err(|source| request_error(url, source))?;
 
+        // Read where the answer came from before the body is read, which uses up the
+        // answer. After a redirect this is the last server, not the first.
+        let url_answered = answer.url().clone();
+
         let status = answer.status();
         // A registry answers 404 when it holds no record. That is an answer, not a
         // failure, and a caller asking several sources must not stop on it.
@@ -228,12 +233,16 @@ impl Client {
 
         let body = read_capped(answer, url, MAX_RECORD_BYTES).await?;
 
-        serde_json::from_slice(&body)
-            .map(Some)
-            .map_err(|source| Error::Decode {
-                server: url.to_owned(),
-                source,
-            })
+        let response = serde_json::from_slice(&body).map_err(|source| Error::Decode {
+            server: url.to_owned(),
+            source,
+        })?;
+
+        Ok(Some(Record {
+            response,
+            server: server_of(&url_answered),
+            url: url_answered.into(),
+        }))
     }
 
     /// Builds the HTTP client the crate uses.
@@ -253,6 +262,39 @@ impl Client {
             server: "the HTTP client".to_owned(),
             source: Box::new(source),
         })
+    }
+}
+
+/// A record the client fetched, with the server that answered.
+#[derive(Clone, Debug)]
+pub struct Record {
+    /// The record.
+    pub response: Response,
+    /// The server that answered: the host, with the port when the URL names one.
+    ///
+    /// After a redirect this is the last server, which is the one that sent the record.
+    pub server: String,
+    /// The URL that answered, after every redirect.
+    pub url: String,
+}
+
+impl Record {
+    /// Returns every abuse contact in the record, each one time.
+    ///
+    /// The source of each contact names the server that answered.
+    pub fn abuse_contacts(&self, scope: Scope) -> Vec<Contact> {
+        self.response.abuse_contacts(scope, &self.server)
+    }
+}
+
+/// Returns the server part of a URL: the host, with the port when the URL names one.
+///
+/// A URL for the default port of its scheme names no port.
+fn server_of(url: &reqwest::Url) -> String {
+    let host = url.host_str().unwrap_or_default();
+    match url.port() {
+        Some(port) => format!("{host}:{port}"),
+        None => host.to_owned(),
     }
 }
 
@@ -352,6 +394,28 @@ mod tests {
         assert_eq!(
             record_url("https://rdap.example.net", "domain", "example.com"),
             "https://rdap.example.net/domain/example.com"
+        );
+    }
+
+    #[test]
+    fn the_server_of_a_url_is_its_host() {
+        let url = |value: &str| reqwest::Url::parse(value).unwrap();
+
+        assert_eq!(
+            server_of(&url("https://rdap.arin.net/registry/ip/8.8.8.8")),
+            "rdap.arin.net"
+        );
+        assert_eq!(
+            server_of(&url("https://rdap.arin.net:443/registry/")),
+            "rdap.arin.net"
+        );
+        assert_eq!(
+            server_of(&url("http://127.0.0.1:8080/ip/8.8.8.8")),
+            "127.0.0.1:8080"
+        );
+        assert_eq!(
+            server_of(&url("https://[2001:db8::1]:8443/")),
+            "[2001:db8::1]:8443"
         );
     }
 

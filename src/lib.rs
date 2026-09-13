@@ -102,11 +102,12 @@ mod contact;
 #[cfg(feature = "http")]
 mod destination;
 mod error;
+mod nat64;
 mod prefix;
 mod query;
 
 #[cfg(feature = "http")]
-pub use client::{Client, MAX_BOOTSTRAP_BYTES, MAX_RECORD_BYTES};
+pub use client::{Client, MAX_BOOTSTRAP_BYTES, MAX_RECORD_BYTES, Record};
 pub use contact::{Contact, EmailAddress, Scope, Source, rank};
 #[cfg(feature = "http")]
 pub use destination::Destinations;

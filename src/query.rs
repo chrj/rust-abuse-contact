@@ -253,8 +253,10 @@ mod tests {
 /// a wrong one: nobody at IANA can act on a host inside your network, and a report
 /// sent there is noise.
 ///
-/// An IPv4 address written as IPv6, such as `::ffff:10.0.0.1`, is judged as the IPv4
-/// address it carries. Without that, the IPv6 spelling of a private address would pass.
+/// An IPv4 address written as IPv6 is judged as the IPv4 address it carries. That is
+/// an IPv4-mapped address such as `::ffff:10.0.0.1`, and an address under the NAT64
+/// well-known prefix such as `64:ff9b::a00:1`. Without that, the IPv6 spelling of a
+/// private address would pass.
 ///
 /// ```
 /// use abuse_contact::is_public;
@@ -262,6 +264,7 @@ mod tests {
 /// assert!(is_public("8.8.8.8".parse().unwrap()));
 /// assert!(!is_public("192.168.1.1".parse().unwrap()));
 /// assert!(!is_public("::ffff:192.168.1.1".parse().unwrap()));
+/// assert!(!is_public("64:ff9b::a9fe:a9fe".parse().unwrap()));
 /// // A globally reachable anycast address inside a reserved block.
 /// assert!(is_public("192.0.0.9".parse().unwrap()));
 /// ```
@@ -291,16 +294,30 @@ fn most_specific(table: &[(&str, Reach)], ip: IpAddr) -> Option<Reach> {
         .map(|(_, reach)| reach)
 }
 
-/// Returns the IPv4 address an IPv4-mapped IPv6 address carries, or the address as
-/// it was.
+/// Returns the IPv4 address an IPv6 address carries in a fixed place, or the address
+/// as it was.
 ///
-/// `::ffff:8.8.8.8` and `8.8.8.8` are one host. The IPv6 registry holds no record for
-/// the mapped form, so both the check and the lookup use the IPv4 form.
+/// Two forms carry one in a place that does not depend on the network: an IPv4-mapped
+/// address such as `::ffff:8.8.8.8`, and an address under the NAT64 well-known prefix
+/// such as `64:ff9b::808:808`. Each is one host with `8.8.8.8`, and no registry holds
+/// a record for the IPv6 form, so both the check and the lookup use the IPv4 form.
 pub(crate) fn unmap(ip: IpAddr) -> IpAddr {
-    match ip {
-        IpAddr::V6(v6) => v6.to_ipv4_mapped().map_or(ip, IpAddr::V4),
-        IpAddr::V4(_) => ip,
+    let IpAddr::V6(v6) = ip else {
+        return ip;
+    };
+
+    if let Some(v4) = v6.to_ipv4_mapped() {
+        return IpAddr::V4(v4);
     }
+
+    let (prefix, length) = crate::nat64::WELL_KNOWN_PREFIX;
+    if crate::prefix::contains(IpAddr::V6(prefix), length, ip)
+        && let Some(v4) = crate::nat64::embedded_ipv4(v6, length)
+    {
+        return IpAddr::V4(v4);
+    }
+
+    ip
 }
 
 /// Whether the special-purpose registry marks a range as globally reachable.
@@ -353,14 +370,14 @@ const SPECIAL_V4: &[(&str, Reach)] = &[
 
 /// The IANA IPv6 Special-Purpose Address Registry, one row per address block.
 ///
-/// Copied from `iana-ipv6-special-registry-1.csv`, with one row left out and one
-/// added. `::ffff:0:0/96` is left out: [`unmap`] turns such an address into IPv4
-/// before this table is read, so the IPv4 table judges it. The last row is not in
-/// that registry: it is the multicast range, from the multicast address registry.
+/// Copied from `iana-ipv6-special-registry-1.csv`, with two rows left out and one
+/// added. `::ffff:0:0/96` and `64:ff9b::/96` are left out: [`unmap`] turns an address
+/// in either into IPv4 before this table is read, so the IPv4 table judges it. The last
+/// row is not in that registry: it is the multicast range, from the multicast address
+/// registry.
 const SPECIAL_V6: &[(&str, Reach)] = &[
     ("::1/128", NotGlobal),
     ("::/128", NotGlobal),
-    ("64:ff9b::/96", Global),
     ("64:ff9b:1::/48", NotGlobal),
     ("100::/64", NotGlobal),
     ("100:0:0:1::/64", NotGlobal),
@@ -524,6 +541,32 @@ mod public_tests {
         assert!(public("2001:3::"));
         assert!(public("2001:3:ffff:ffff:ffff:ffff:ffff:ffff"));
         assert!(!public("2001:4::"));
+    }
+
+    #[test]
+    fn an_address_under_the_nat64_well_known_prefix_is_judged_as_ipv4() {
+        // A DNS64 network answers these for a name whose only address is the IPv4 one
+        // inside, and its NAT64 gateway connects to that IPv4 address.
+        assert!(
+            !public("64:ff9b::a9fe:a9fe"),
+            "169.254.169.254, cloud metadata"
+        );
+        assert!(!public("64:ff9b::7f00:1"), "127.0.0.1");
+        assert!(!public("64:ff9b::a00:1"), "10.0.0.1");
+        assert!(public("64:ff9b::808:808"), "8.8.8.8");
+    }
+
+    #[test]
+    fn unmap_reads_the_nat64_well_known_prefix() {
+        assert_eq!(
+            unmap("64:ff9b::808:808".parse().unwrap()),
+            "8.8.8.8".parse::<IpAddr>().unwrap()
+        );
+        // The local-use NAT64 prefix is not read here: its layout depends on the network.
+        assert_eq!(
+            unmap("64:ff9b:1::808:808".parse().unwrap()),
+            "64:ff9b:1::808:808".parse::<IpAddr>().unwrap()
+        );
     }
 
     #[test]

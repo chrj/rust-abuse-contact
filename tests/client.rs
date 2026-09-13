@@ -6,7 +6,7 @@
 #![cfg(feature = "http")]
 
 use abuse_contact::bootstrap::{Bootstrap, Registry};
-use abuse_contact::{Client, Destinations, Error, MAX_RECORD_BYTES, Scope};
+use abuse_contact::{Client, Destinations, Error, MAX_RECORD_BYTES, Scope, Source};
 use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -54,16 +54,66 @@ async fn fetches_and_reads_an_ip_record() {
         .mount(&server)
         .await;
 
-    let response = client_for(&server)
+    let record = client_for(&server)
         .lookup_ip("8.8.8.8".parse().unwrap())
         .await
         .unwrap()
         .expect("the server answered with a record");
 
-    let contacts = response.abuse_contacts(Scope::Network, "test");
+    let contacts = record.abuse_contacts(Scope::Network);
 
     assert_eq!(contacts.len(), 1);
     assert_eq!(contacts[0].email.as_str(), "network-abuse@example.com");
+    // The source names the server that answered, not a value the caller made up.
+    assert_eq!(
+        contacts[0].source,
+        Source::Rdap {
+            server: host_and_port(&server)
+        }
+    );
+}
+
+/// Returns the server part of a test server URL, such as `127.0.0.1:41234`.
+fn host_and_port(server: &MockServer) -> String {
+    server.uri().trim_start_matches("http://").to_owned()
+}
+
+#[tokio::test]
+async fn the_record_names_the_server_a_redirect_ended_at() {
+    // A registry that no longer holds a range redirects to the one that does. The
+    // contacts come from the second server, so the record must name it.
+    let first = MockServer::start().await;
+    let second = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/ip/8.8.8.8"))
+        .respond_with(
+            ResponseTemplate::new(301)
+                .insert_header("location", format!("{}/registry/ip/8.8.8.8", second.uri())),
+        )
+        .expect(1)
+        .mount(&first)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/registry/ip/8.8.8.8"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(RECORD))
+        .expect(1)
+        .mount(&second)
+        .await;
+
+    let record = client_for(&first)
+        .lookup_ip("8.8.8.8".parse().unwrap())
+        .await
+        .unwrap()
+        .expect("the second server answered with a record");
+
+    assert_eq!(record.server, host_and_port(&second));
+    assert_eq!(record.url, format!("{}/registry/ip/8.8.8.8", second.uri()));
+    assert_eq!(
+        record.abuse_contacts(Scope::Network)[0].source,
+        Source::Rdap {
+            server: host_and_port(&second)
+        }
+    );
 }
 
 #[tokio::test]
@@ -302,7 +352,11 @@ async fn a_name_that_resolves_only_to_loopback_is_refused() {
             .unwrap_err(),
     );
 
-    assert_eq!(reason, "localhost resolves to no public address");
+    // localhost resolves to 127.0.0.1, ::1, or both, in an order the system picks.
+    assert!(
+        reason.starts_with("localhost resolves to ") && reason.ends_with("not a public address"),
+        "{reason}"
+    );
 }
 
 #[tokio::test]

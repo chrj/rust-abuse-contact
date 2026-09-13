@@ -101,10 +101,7 @@ pub enum Error {
     /// The client refuses one that goes to an address that is not public, uses a
     /// scheme other than HTTP or HTTPS, drops from HTTPS to HTTP, or redirects too
     /// many times.
-    #[error(
-        "the client did not request {server}: {reason}. A registry record must not \
-         point inside your network. Use Destinations::Any only for a registry you run"
-    )]
+    #[error("the client did not request {server}: {reason}")]
     Refused {
         /// The URL the client did not request.
         server: String,

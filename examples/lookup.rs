@@ -36,22 +36,28 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     let client = Client::new().await?;
 
-    let Some(response) = client.lookup(query).await? else {
+    let Some(record) = client.lookup(query).await? else {
         println!("{target}: the registry holds no record");
         return Ok(());
     };
 
-    let contacts = rank(response.abuse_contacts(scope, "rdap"));
+    let contacts = rank(record.abuse_contacts(scope));
     if contacts.is_empty() {
-        println!("{target}: the record carries no abuse contact");
-        if let Some(href) = response.related_href() {
+        println!(
+            "{target}: the record from {} carries no abuse contact",
+            record.server
+        );
+        if let Some(href) = record.response.related_href() {
             println!("  the registrar record is at {href}");
         }
         return Ok(());
     }
 
     for contact in contacts {
-        println!("{target}: {} ({:?})", contact.email, contact.scope);
+        println!(
+            "{target}: {} ({:?}, from {})",
+            contact.email, contact.scope, record.server
+        );
     }
 
     Ok(())

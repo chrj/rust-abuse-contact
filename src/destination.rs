@@ -7,7 +7,7 @@
 
 use std::error::Error as StdError;
 use std::fmt;
-use std::net::{IpAddr, SocketAddr};
+use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 
 use reqwest::Url;
 use reqwest::dns::{Addrs, Name, Resolve, Resolving};
@@ -20,9 +20,10 @@ pub(crate) const MAX_REDIRECTS: usize = 5;
 pub enum Destinations {
     /// Public addresses only.
     ///
-    /// The client refuses an address written in a URL that is not public, and drops
-    /// every address a name resolves to that is not public. A name with no public
-    /// address is refused.
+    /// The client refuses an address written in a URL that is not public, and a name
+    /// that resolves to any address that is not public. On a network with NAT64, it
+    /// also reads the IPv4 address inside an IPv6 address, because the connection
+    /// ends there.
     ///
     /// The client connects directly and ignores proxy settings from the environment.
     /// A proxy resolves names where this check cannot see them.
@@ -87,7 +88,8 @@ pub(crate) fn check_url(url: &Url, destinations: Destinations) -> Result<(), Ref
 
     match literal.parse::<IpAddr>() {
         Ok(ip) if !crate::is_public(ip) => Err(Refusal::new(format!(
-            "{ip} is a private, reserved or documentation address"
+            "{ip} is a private, reserved or documentation address, and a registry record \
+             must not point inside your network"
         ))),
         _ => Ok(()),
     }
@@ -127,7 +129,7 @@ pub(crate) fn redirect_policy(destinations: Destinations) -> reqwest::redirect::
     })
 }
 
-/// Resolves names, and keeps only the public addresses.
+/// Resolves names, and refuses a name with an address that is not public.
 ///
 /// The client connects to the addresses this returns and no others, so a name cannot
 /// resolve to a public address for the check and a private one for the connection.
@@ -140,25 +142,109 @@ impl Resolve for PublicResolver {
 
         Box::pin(async move {
             // The port is a placeholder. The client puts the port of the URL in its place.
-            let found = tokio::net::lookup_host((host.as_str(), 0)).await?;
+            let found: Vec<SocketAddr> =
+                tokio::net::lookup_host((host.as_str(), 0)).await?.collect();
 
-            let public = public_addresses(found);
-            if public.is_empty() {
-                let refusal = Refusal::new(format!("{host} resolves to no public address"));
-                return Err(Box::new(refusal) as Box<dyn StdError + Send + Sync>);
+            // The NAT64 prefix matters only to an IPv6 address, so it is learned only then.
+            let nat64 = if found.iter().any(SocketAddr::is_ipv6) {
+                discover_nat64().await.ok()
+            } else {
+                Some(Vec::new())
+            };
+
+            match usable_addresses(&host, &found, nat64.as_deref()) {
+                Ok(usable) => Ok(Box::new(usable.into_iter()) as Addrs),
+                Err(refusal) => Err(Box::new(refusal) as Box<dyn StdError + Send + Sync>),
             }
-
-            Ok(Box::new(public.into_iter()) as Addrs)
         })
     }
 }
 
-/// Returns the addresses that are public, in the order they came.
-pub(crate) fn public_addresses(found: impl IntoIterator<Item = SocketAddr>) -> Vec<SocketAddr> {
-    found
-        .into_iter()
-        .filter(|address| crate::is_public(address.ip()))
-        .collect()
+/// Learns the NAT64 prefixes of this network, as RFC 7050 describes.
+///
+/// A network without DNS64 answers `ipv4only.arpa` with IPv4 addresses only, and this
+/// gives no prefix.
+async fn discover_nat64() -> std::io::Result<Vec<(Ipv6Addr, u8)>> {
+    let answer: Vec<Ipv6Addr> = tokio::net::lookup_host((crate::nat64::DISCOVERY_NAME, 0))
+        .await?
+        .filter_map(|address| match address.ip() {
+            IpAddr::V6(v6) => Some(v6),
+            IpAddr::V4(_) => None,
+        })
+        .collect();
+
+    Ok(crate::nat64::prefixes_from_discovery(&answer))
+}
+
+/// Returns the addresses of a name to connect to, or why the name is refused.
+///
+/// `nat64` holds the NAT64 prefixes of the network, or `None` when they could not be
+/// learned.
+///
+/// One address that is not public refuses the whole name. A name that points at a
+/// public and a private address is a trick to pass a check with one and connect to
+/// the other, and a registry has no reason to publish a private address.
+///
+/// An IPv6 address that the NAT64 gateway could translate, and that cannot be checked
+/// because the prefixes are unknown, is not used. A name left with no address is
+/// refused.
+pub(crate) fn usable_addresses(
+    host: &str,
+    found: &[SocketAddr],
+    nat64: Option<&[(Ipv6Addr, u8)]>,
+) -> Result<Vec<SocketAddr>, Refusal> {
+    let mut usable = Vec::new();
+    let mut unchecked = false;
+
+    for &address in found {
+        let ip = address.ip();
+        if !crate::is_public(ip) {
+            // An IPv6 address that carries an IPv4 one is judged by the IPv4 one, so
+            // the reason names both.
+            let inner = crate::query::unmap(ip);
+            let reason = if inner == ip {
+                format!("{host} resolves to {ip}, which is not a public address")
+            } else {
+                format!(
+                    "{host} resolves to {ip}, which is {inner}, and that is not a public address"
+                )
+            };
+            return Err(Refusal::new(reason));
+        }
+
+        let IpAddr::V6(v6) = ip else {
+            usable.push(address);
+            continue;
+        };
+
+        // The well-known prefix is read by is_public. A prefix this network chose can
+        // only be read when it is known.
+        let Some(prefixes) = nat64 else {
+            unchecked = true;
+            continue;
+        };
+        if let Some(v4) = crate::nat64::translations(v6, prefixes)
+            .into_iter()
+            .find(|&v4| !crate::is_public(IpAddr::V4(v4)))
+        {
+            return Err(Refusal::new(format!(
+                "{host} resolves to {ip}, which the NAT64 gateway of this network \
+                 translates to {v4}, and that is not a public address"
+            )));
+        }
+        usable.push(address);
+    }
+
+    if !usable.is_empty() {
+        return Ok(usable);
+    }
+    if unchecked {
+        return Err(Refusal::new(format!(
+            "{host} has only IPv6 addresses, and the NAT64 prefix of this network could \
+             not be learned to check them. Check that ipv4only.arpa resolves"
+        )));
+    }
+    Err(Refusal::new(format!("{host} resolves to no address")))
 }
 
 /// Returns the refusal inside an HTTP error, when the error came from one.
@@ -312,21 +398,102 @@ mod tests {
         );
     }
 
-    #[test]
-    fn keeps_only_the_public_addresses_of_a_name() {
-        let found: Vec<SocketAddr> = ["127.0.0.1:0", "8.8.8.8:0", "[::1]:0", "[2001:4860::8888]:0"]
-            .iter()
-            .map(|a| a.parse().unwrap())
-            .collect();
+    fn addresses(values: &[&str]) -> Vec<SocketAddr> {
+        values.iter().map(|value| value.parse().unwrap()).collect()
+    }
 
-        let kept = public_addresses(found);
+    #[test]
+    fn a_name_with_only_public_addresses_is_used_as_it_resolved() {
+        let found = addresses(&["8.8.8.8:0", "[2001:4860::8888]:0"]);
 
         assert_eq!(
-            kept,
-            vec![
-                "8.8.8.8:0".parse::<SocketAddr>().unwrap(),
-                "[2001:4860::8888]:0".parse::<SocketAddr>().unwrap(),
-            ]
+            usable_addresses("rdap.example.net", &found, Some(&[])).unwrap(),
+            found
         );
+    }
+
+    #[test]
+    fn one_address_that_is_not_public_refuses_the_whole_name() {
+        let found = addresses(&["8.8.8.8:0", "169.254.169.254:0"]);
+
+        let refusal = usable_addresses("evil.example", &found, Some(&[])).unwrap_err();
+
+        assert_eq!(
+            refusal.reason,
+            "evil.example resolves to 169.254.169.254, which is not a public address"
+        );
+    }
+
+    #[test]
+    fn an_address_under_the_nat64_well_known_prefix_is_refused_without_discovery() {
+        // DNS64 answers this for a name whose A record is 169.254.169.254.
+        let found = addresses(&["[64:ff9b::a9fe:a9fe]:0"]);
+
+        let refusal = usable_addresses("evil.example", &found, None).unwrap_err();
+
+        assert_eq!(
+            refusal.reason,
+            "evil.example resolves to 64:ff9b::a9fe:a9fe, which is 169.254.169.254, and that \
+             is not a public address"
+        );
+    }
+
+    #[test]
+    fn an_address_under_a_discovered_nat64_prefix_is_judged_by_the_ipv4_address_inside() {
+        // The prefix must be an ordinary public one. Under a documentation prefix such
+        // as 2001:db8::/32 the address is refused before the NAT64 check is reached.
+        let prefixes = [("2c00:64::".parse().unwrap(), 96)];
+        assert!(crate::is_public("2c00:64::a9fe:a9fe".parse().unwrap()));
+
+        let refused = usable_addresses(
+            "evil.example",
+            &addresses(&["[2c00:64::a9fe:a9fe]:0"]),
+            Some(&prefixes),
+        )
+        .unwrap_err();
+        assert_eq!(
+            refused.reason,
+            "evil.example resolves to 2c00:64::a9fe:a9fe, which the NAT64 gateway of this \
+             network translates to 169.254.169.254, and that is not a public address"
+        );
+
+        let public = addresses(&["[2c00:64::808:808]:0"]);
+        assert_eq!(
+            usable_addresses("rdap.example.net", &public, Some(&prefixes)).unwrap(),
+            public
+        );
+    }
+
+    #[test]
+    fn an_ipv6_address_is_not_used_when_the_nat64_prefix_cannot_be_learned() {
+        // The IPv4 address can be checked, so the name still has a usable address.
+        let found = addresses(&["8.8.8.8:0", "[2001:4860::8888]:0"]);
+
+        assert_eq!(
+            usable_addresses("rdap.example.net", &found, None).unwrap(),
+            addresses(&["8.8.8.8:0"])
+        );
+    }
+
+    #[test]
+    fn a_name_with_only_ipv6_addresses_that_cannot_be_checked_is_refused() {
+        let found = addresses(&["[2001:4860::8888]:0"]);
+
+        let refusal = usable_addresses("rdap.example.net", &found, None).unwrap_err();
+
+        assert!(
+            refusal
+                .reason
+                .contains("NAT64 prefix of this network could not be learned"),
+            "{}",
+            refusal.reason
+        );
+    }
+
+    #[test]
+    fn a_name_with_no_address_is_refused() {
+        let refusal = usable_addresses("rdap.example.net", &[], Some(&[])).unwrap_err();
+
+        assert_eq!(refusal.reason, "rdap.example.net resolves to no address");
     }
 }
