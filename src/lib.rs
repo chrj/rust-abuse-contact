@@ -73,23 +73,37 @@
 //! RDAP therefore does not answer everywhere. For AFRINIC space and for registro.br
 //! space, DNS is the only source that gives an address. Ask more than one source.
 //!
+//! # Fetching a record
+//!
+//! `Client` picks the server from the IANA bootstrap registries and fetches the
+//! record. It needs the `http` feature, which is on by default, and its own
+//! documentation shows a lookup.
+//!
+//! Turn the feature off with `default-features = false` to take the readers alone,
+//! with no HTTP stack. Then fetch with the client you already have and call
+//! [`rdap::Response::abuse_contacts`], [`dns::contacts_from_txt`] and [`rank`] on what
+//! comes back.
+//!
 //! # State of this crate
 //!
-//! The part that decides what an answer means is here and is tested. The part that
-//! fetches an answer is not written yet: it needs an HTTP client for RDAP and a
-//! resolver for the DNS zones. Until then, fetch with the client you already have and
-//! call [`rdap::Response::abuse_contacts`], [`dns::contacts_from_txt`] and [`rank`]
-//! on what comes back.
+//! RDAP is fetched. The DNS zones are not: [`dns`] builds the names to ask for and
+//! reads the answers, but nothing asks yet. For AFRINIC space, where RDAP publishes no
+//! abuse entity, those zones are the only source that answers.
 
 #![forbid(unsafe_code)]
 
+pub mod bootstrap;
 pub mod dns;
 pub mod rdap;
 
+#[cfg(feature = "http")]
+mod client;
 mod contact;
 mod error;
 mod query;
 
+#[cfg(feature = "http")]
+pub use client::Client;
 pub use contact::{Contact, EmailAddress, Scope, Source, rank};
-pub use error::ValidationError;
-pub use query::{DomainName, Query};
+pub use error::{Error, ValidationError};
+pub use query::{DomainName, Query, is_public};

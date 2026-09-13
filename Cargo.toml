@@ -10,10 +10,28 @@ readme = "README.md"
 keywords = ["abuse", "rdap", "whois", "email", "security"]
 categories = ["network-programming", "email"]
 
+[features]
+default = ["http"]
+# The RDAP client. Turn it off to take the readers alone, with no HTTP stack.
+http = ["dep:reqwest"]
+
 [dependencies]
+# The body is read as text and parsed here, so the "json" feature is not needed.
+reqwest = { version = "0.12", optional = true, default-features = false, features = [
+    "rustls-tls",
+] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+wiremock = "0.6"
+
+# The example makes live requests, so it needs the client.
+[[example]]
+name = "lookup"
+required-features = ["http"]
 
 [lints.rust]
 missing_docs = "deny"
