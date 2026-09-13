@@ -99,12 +99,16 @@ pub mod rdap;
 #[cfg(feature = "http")]
 mod client;
 mod contact;
+#[cfg(feature = "http")]
+mod destination;
 mod error;
 mod prefix;
 mod query;
 
 #[cfg(feature = "http")]
-pub use client::Client;
+pub use client::{Client, MAX_BOOTSTRAP_BYTES, MAX_RECORD_BYTES};
 pub use contact::{Contact, EmailAddress, Scope, Source, rank};
+#[cfg(feature = "http")]
+pub use destination::Destinations;
 pub use error::{Error, ValidationError};
 pub use query::{DomainName, Query, is_public};

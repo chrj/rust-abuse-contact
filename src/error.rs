@@ -95,6 +95,35 @@ pub enum Error {
         target: String,
     },
 
+    /// The client did not send the request, or did not follow a redirect.
+    ///
+    /// A link in a record and a redirect from a server come from outside the process.
+    /// The client refuses one that goes to an address that is not public, uses a
+    /// scheme other than HTTP or HTTPS, drops from HTTPS to HTTP, or redirects too
+    /// many times.
+    #[error(
+        "the client did not request {server}: {reason}. A registry record must not \
+         point inside your network. Use Destinations::Any only for a registry you run"
+    )]
+    Refused {
+        /// The URL the client did not request.
+        server: String,
+        /// Why.
+        reason: String,
+    },
+
+    /// The server sent a body longer than the crate reads.
+    ///
+    /// A record is a few kilobytes. A body past the limit is a fault on the server, or
+    /// a server that tries to use up the memory of the process.
+    #[error("{server} sent a body longer than {limit} bytes, which is more than a record")]
+    TooLarge {
+        /// The server that answered.
+        server: String,
+        /// The most the crate reads, in bytes.
+        limit: usize,
+    },
+
     /// No registry holds the address or the name.
     ///
     /// The bootstrap registry names a server for every range IANA has given out. A

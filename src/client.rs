@@ -5,9 +5,11 @@
 //! [`Response::abuse_contacts`](crate::rdap::Response::abuse_contacts).
 
 use std::net::IpAddr;
+use std::sync::Arc;
 use std::time::Duration;
 
 use crate::bootstrap::{Bootstrap, DNS_URL, IPV4_URL, IPV6_URL, Registry};
+use crate::destination::{self, Destinations, PublicResolver};
 use crate::error::Error;
 use crate::query::{DomainName, Query};
 use crate::rdap::Response;
@@ -24,10 +26,25 @@ const USER_AGENT: &str = concat!("abuse-contact/", env!("CARGO_PKG_VERSION"));
 /// The media type an RDAP server answers with.
 const RDAP_MEDIA_TYPE: &str = "application/rdap+json";
 
+/// The most the client reads of a record, in bytes.
+///
+/// The largest record in the test fixtures is 18 KiB. The limit leaves room for a
+/// network with many contacts and stops a server that sends without end.
+pub const MAX_RECORD_BYTES: usize = 1024 * 1024;
+
+/// The most the client reads of a bootstrap registry, in bytes.
+///
+/// The largest registry, for domain names, is 71 KiB.
+pub const MAX_BOOTSTRAP_BYTES: usize = 4 * 1024 * 1024;
+
 /// Fetches RDAP records.
 ///
 /// Build one and keep it. It holds the bootstrap registries and a connection pool,
 /// and both are wasted when a client is built for one lookup.
+///
+/// The client connects to public addresses only, unless it is built with
+/// [`Destinations::Any`]. A record and a redirect come from outside the process, and
+/// this keeps either from sending the client to a service inside your network.
 ///
 /// ```no_run
 /// use abuse_contact::{Client, Scope, rank};
@@ -47,40 +64,50 @@ const RDAP_MEDIA_TYPE: &str = "application/rdap+json";
 pub struct Client {
     http: reqwest::Client,
     bootstrap: Bootstrap,
+    destinations: Destinations,
 }
 
 impl Client {
     /// Fetches the three bootstrap registries and returns a client.
     ///
-    /// This makes three requests to IANA. Build the client one time.
+    /// This makes three requests to IANA. Build the client one time. The client
+    /// connects to public addresses only.
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Transport`] when a registry cannot be fetched, and
+    /// Returns [`Error::Transport`] when a registry cannot be fetched,
+    /// [`Error::TooLarge`] when one is past [`MAX_BOOTSTRAP_BYTES`], and
     /// [`Error::Decode`] when one is not a bootstrap file.
     pub async fn new() -> Result<Self, Error> {
-        let http = Self::http_client()?;
+        let destinations = Destinations::Public;
+        let http = Self::http_client(destinations)?;
         let bootstrap = Bootstrap {
             ipv4: fetch_registry(&http, IPV4_URL).await?,
             ipv6: fetch_registry(&http, IPV6_URL).await?,
             dns: fetch_registry(&http, DNS_URL).await?,
         };
 
-        Ok(Self { http, bootstrap })
+        Ok(Self {
+            http,
+            bootstrap,
+            destinations,
+        })
     }
 
     /// Returns a client that uses registries you already hold.
     ///
     /// Use this to keep the registries between runs, so a short-lived process does
-    /// not fetch them again.
+    /// not fetch them again. Give [`Destinations::Public`] unless every server in the
+    /// registries is one you run.
     ///
     /// # Errors
     ///
     /// Returns [`Error::Transport`] when the HTTP client cannot be built.
-    pub fn with_bootstrap(bootstrap: Bootstrap) -> Result<Self, Error> {
+    pub fn with_bootstrap(bootstrap: Bootstrap, destinations: Destinations) -> Result<Self, Error> {
         Ok(Self {
-            http: Self::http_client()?,
+            http: Self::http_client(destinations)?,
             bootstrap,
+            destinations,
         })
     }
 
@@ -96,9 +123,8 @@ impl Client {
     /// # Errors
     ///
     /// Returns [`Error::NotPublic`] for a private or reserved address,
-    /// [`Error::NoServer`] when no registry answers for the target,
-    /// [`Error::Transport`] when the request does not complete, [`Error::Status`]
-    /// when the server refuses, and [`Error::Decode`] when the body is not RDAP.
+    /// [`Error::NoServer`] when no registry answers for the target, and the errors of
+    /// [`Client::fetch`].
     pub async fn lookup(&self, query: impl Into<Query>) -> Result<Option<Response>, Error> {
         match query.into() {
             Query::Ip(ip) => self.lookup_ip(ip).await,
@@ -163,20 +189,28 @@ impl Client {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Transport`] when the request does not complete,
-    /// [`Error::Status`] when the server refuses, and [`Error::Decode`] when the body
-    /// is not RDAP.
+    /// Returns [`Error::Refused`] when the URL, or a redirect from it, goes where the
+    /// client does not connect, [`Error::Transport`] when the request does not
+    /// complete, [`Error::Status`] when the server refuses, [`Error::TooLarge`] when the
+    /// body is past [`MAX_RECORD_BYTES`], and [`Error::Decode`] when the body is not
+    /// RDAP.
     pub async fn fetch(&self, url: &str, target: &str) -> Result<Option<Response>, Error> {
+        let parsed = reqwest::Url::parse(url).map_err(|problem| Error::Refused {
+            server: url.to_owned(),
+            reason: format!("it is not a URL: {problem}"),
+        })?;
+        destination::check_url(&parsed, self.destinations).map_err(|refusal| Error::Refused {
+            server: url.to_owned(),
+            reason: refusal.reason,
+        })?;
+
         let answer = self
             .http
-            .get(url)
+            .get(parsed)
             .header(reqwest::header::ACCEPT, RDAP_MEDIA_TYPE)
             .send()
             .await
-            .map_err(|source| Error::Transport {
-                server: url.to_owned(),
-                source: Box::new(source),
-            })?;
+            .map_err(|source| request_error(url, source))?;
 
         let status = answer.status();
         // A registry answers 404 when it holds no record. That is an answer, not a
@@ -192,12 +226,9 @@ impl Client {
             });
         }
 
-        let body = answer.text().await.map_err(|source| Error::Transport {
-            server: url.to_owned(),
-            source: Box::new(source),
-        })?;
+        let body = read_capped(answer, url, MAX_RECORD_BYTES).await?;
 
-        serde_json::from_str(&body)
+        serde_json::from_slice(&body)
             .map(Some)
             .map_err(|source| Error::Decode {
                 server: url.to_owned(),
@@ -206,15 +237,22 @@ impl Client {
     }
 
     /// Builds the HTTP client the crate uses.
-    fn http_client() -> Result<reqwest::Client, Error> {
-        reqwest::Client::builder()
+    fn http_client(destinations: Destinations) -> Result<reqwest::Client, Error> {
+        let mut builder = reqwest::Client::builder()
             .user_agent(USER_AGENT)
             .timeout(TIMEOUT)
-            .build()
-            .map_err(|source| Error::Transport {
-                server: "the HTTP client".to_owned(),
-                source: Box::new(source),
-            })
+            .redirect(destination::redirect_policy(destinations));
+
+        if destinations == Destinations::Public {
+            // A proxy resolves names where the resolver cannot drop private addresses,
+            // so a public-only client does not use one.
+            builder = builder.dns_resolver(Arc::new(PublicResolver)).no_proxy();
+        }
+
+        builder.build().map_err(|source| Error::Transport {
+            server: "the HTTP client".to_owned(),
+            source: Box::new(source),
+        })
     }
 }
 
@@ -226,28 +264,75 @@ fn record_url(server: &str, kind: &str, target: &str) -> String {
     format!("{}/{kind}/{target}", server.trim_end_matches('/'))
 }
 
+/// Returns the error for a request that did not complete.
+///
+/// The resolver and the redirect policy report a refusal through the HTTP client. It
+/// comes back here as a transport error, and is turned back into [`Error::Refused`].
+fn request_error(url: &str, source: reqwest::Error) -> Error {
+    match destination::refusal_in(&source) {
+        Some(refusal) => Error::Refused {
+            server: url.to_owned(),
+            reason: refusal.reason.clone(),
+        },
+        None => Error::Transport {
+            server: url.to_owned(),
+            source: Box::new(source),
+        },
+    }
+}
+
 /// Fetches one bootstrap registry.
 async fn fetch_registry(http: &reqwest::Client, url: &str) -> Result<Registry, Error> {
-    let body = http
+    let answer = http
         .get(url)
         .send()
         .await
         .and_then(reqwest::Response::error_for_status)
-        .map_err(|source| Error::Transport {
-            server: url.to_owned(),
-            source: Box::new(source),
-        })?
-        .text()
-        .await
-        .map_err(|source| Error::Transport {
-            server: url.to_owned(),
-            source: Box::new(source),
-        })?;
+        .map_err(|source| request_error(url, source))?;
 
-    Registry::from_slice(body.as_bytes()).map_err(|source| Error::Decode {
+    let body = read_capped(answer, url, MAX_BOOTSTRAP_BYTES).await?;
+
+    Registry::from_slice(&body).map_err(|source| Error::Decode {
         server: url.to_owned(),
         source,
     })
+}
+
+/// Reads a body, and stops with [`Error::TooLarge`] past `limit` bytes.
+///
+/// The body is read in chunks and counted as it arrives. `Content-Length` alone does
+/// not bound it: a chunked answer does not send one, and a server can send more than
+/// it announced.
+async fn read_capped(
+    mut answer: reqwest::Response,
+    url: &str,
+    limit: usize,
+) -> Result<Vec<u8>, Error> {
+    let too_large = || Error::TooLarge {
+        server: url.to_owned(),
+        limit,
+    };
+
+    // A server that announces too much is refused before any of the body is read.
+    if answer
+        .content_length()
+        .is_some_and(|length| length > limit as u64)
+    {
+        return Err(too_large());
+    }
+
+    let mut body = Vec::new();
+    while let Some(chunk) = answer.chunk().await.map_err(|source| Error::Transport {
+        server: url.to_owned(),
+        source: Box::new(source),
+    })? {
+        if body.len() + chunk.len() > limit {
+            return Err(too_large());
+        }
+        body.extend_from_slice(&chunk);
+    }
+
+    Ok(body)
 }
 
 #[cfg(test)]
