@@ -57,7 +57,21 @@ cargo run --example lookup -- example.com
 
 A private or reserved address is refused. A regional registry holds a record for the
 block such an address sits in, and that record names IANA. Answering with it gives a
-contact that cannot act on a host inside your own network.
+contact that cannot act on a host inside your own network. The ranges come from the
+IANA special-purpose address registries.
+
+## What the client connects to
+
+A record holds links, and a server sends redirects. Either can point at a service
+inside your own network, such as a cloud metadata endpoint. The client connects to
+public addresses only: it refuses such a link or redirect, and it drops every private
+address a name resolves to. It does not use a proxy from the environment, because a
+proxy resolves names where that check cannot see them.
+
+The client also refuses a redirect from HTTPS to HTTP, and stops after five redirects.
+It reads at most 1 MiB of a record and 4 MiB of a bootstrap registry.
+
+Build a client with `Destinations::Any` only for a registry mirror that you run.
 
 ## Sources
 
