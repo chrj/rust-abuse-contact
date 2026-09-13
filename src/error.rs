@@ -150,6 +150,23 @@ pub enum Error {
         target: String,
     },
 
+    /// A DNS lookup did not finish.
+    ///
+    /// A name that does not exist, or that holds no records of the type asked for, is
+    /// an answer and not this error. This is a lookup that got no answer: a timeout, a
+    /// server that failed, or a resolver configuration the system could not read.
+    #[error(
+        "the DNS lookup for {name} did not finish: {source}. Check that the system \
+         resolver answers, or give nameservers to Resolver::with_nameservers"
+    )]
+    Dns {
+        /// The name that was looked up, or what was being read.
+        name: String,
+        /// What the resolver reported.
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync>,
+    },
+
     /// A value did not satisfy a documented limit.
     #[error(transparent)]
     Validation(#[from] ValidationError),

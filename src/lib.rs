@@ -79,16 +79,23 @@
 //! record. It needs the `http` feature, which is on by default, and its own
 //! documentation shows a lookup.
 //!
-//! Turn the feature off with `default-features = false` to take the readers alone,
-//! with no HTTP stack. Then fetch with the client you already have and call
+//! Turn the default features off with `default-features = false` to take the readers
+//! alone, with no HTTP stack and no resolver. Then fetch with the client you already
+//! have and call
 //! [`rdap::Response::abuse_contacts`], [`dns::contacts_from_txt`] and [`rank`] on what
 //! comes back.
 //!
+//! # Asking the DNS sources
+//!
+//! `Resolver` asks the Abusix and abuse.net zones, and checks that a domain takes mail
+//! before it gives `abuse@` at the domain. It needs the `dns` feature, which is on by
+//! default. For AFRINIC space, where RDAP publishes no abuse entity, Abusix is the only
+//! source that answers.
+//!
 //! # State of this crate
 //!
-//! RDAP is fetched. The DNS zones are not: [`dns`] builds the names to ask for and
-//! reads the answers, but nothing asks yet. For AFRINIC space, where RDAP publishes no
-//! abuse entity, those zones are the only source that answers.
+//! Each source is its own call. One call that asks every source and merges the answers
+//! is not written yet.
 
 #![forbid(unsafe_code)]
 
@@ -104,6 +111,8 @@ mod destination;
 mod error;
 mod nat64;
 mod query;
+#[cfg(feature = "dns")]
+mod resolver;
 
 #[cfg(feature = "http")]
 pub use client::{Client, MAX_BOOTSTRAP_BYTES, MAX_RECORD_BYTES, Record};
@@ -112,3 +121,5 @@ pub use contact::{Contact, EmailAddress, Scope, Source, rank};
 pub use destination::Destinations;
 pub use error::{Error, ValidationError};
 pub use query::{DomainName, Query, is_public};
+#[cfg(feature = "dns")]
+pub use resolver::Resolver;
