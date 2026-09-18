@@ -105,6 +105,8 @@ pub mod bootstrap;
 pub mod dns;
 pub mod rdap;
 
+#[cfg(all(feature = "http", feature = "dns"))]
+mod cache;
 #[cfg(feature = "http")]
 mod client;
 mod contact;
@@ -118,6 +120,8 @@ mod query;
 #[cfg(feature = "dns")]
 mod resolver;
 
+#[cfg(all(feature = "http", feature = "dns"))]
+pub use cache::Cache;
 #[cfg(feature = "http")]
 pub use client::{Client, MAX_BOOTSTRAP_BYTES, MAX_RECORD_BYTES, Record};
 pub use contact::{Contact, EmailAddress, Scope, Source, rank};
