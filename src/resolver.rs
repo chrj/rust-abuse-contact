@@ -165,7 +165,7 @@ impl Resolver {
     /// Returns the TXT records at a name, each as one string.
     ///
     /// A name that does not exist, or has no TXT records, gives no records. That is
-    /// an answer, not a failure.
+    /// an answer, not a failure. A record that is not UTF-8 is dropped.
     async fn txt(&self, name: &str) -> Result<Vec<String>, Error> {
         let name = absolute(name);
 
@@ -174,7 +174,7 @@ impl Resolver {
                 .answers()
                 .iter()
                 .filter_map(|record| match &record.data {
-                    RData::TXT(txt) => Some(txt_value(&txt.txt_data)),
+                    RData::TXT(txt) => txt_value(&txt.txt_data),
                     _ => None,
                 })
                 .collect()),
@@ -204,12 +204,11 @@ fn absolute(name: &str) -> String {
 /// Joins the character strings of one TXT record into its value.
 ///
 /// A value longer than 255 bytes is sent as more than one string, and the strings
-/// together are the value.
-fn txt_value(strings: &[Box<[u8]>]) -> String {
-    strings
-        .iter()
-        .map(|part| String::from_utf8_lossy(part))
-        .collect()
+/// together are the value. A string can end in the middle of a character, so the
+/// bytes are joined before they are read as UTF-8. Returns `None` when the value is
+/// not UTF-8.
+fn txt_value(strings: &[Box<[u8]>]) -> Option<String> {
+    String::from_utf8(strings.concat()).ok()
 }
 
 /// Returns the error for a lookup that did not finish.
@@ -242,7 +241,25 @@ mod tests {
 
         assert_eq!(
             txt_value(&strings),
-            "arin-contact@google.com,network-abuse@google.com"
+            Some("arin-contact@google.com,network-abuse@google.com".to_owned())
         );
+    }
+
+    #[test]
+    fn a_character_split_across_two_strings_is_kept_whole() {
+        // "\xc3\xa6" is "æ" in UTF-8.
+        let strings: Vec<Box<[u8]>> = vec![
+            b"abuse@ex\xc3".to_vec().into_boxed_slice(),
+            b"\xa6mple.com".to_vec().into_boxed_slice(),
+        ];
+
+        assert_eq!(txt_value(&strings), Some("abuse@exæmple.com".to_owned()));
+    }
+
+    #[test]
+    fn a_record_that_is_not_utf8_has_no_value() {
+        let strings: Vec<Box<[u8]>> = vec![b"abuse@\xffexample.com".to_vec().into_boxed_slice()];
+
+        assert_eq!(txt_value(&strings), None);
     }
 }
