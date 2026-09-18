@@ -9,14 +9,18 @@
 mod common;
 
 use abuse_contact::bootstrap::{Bootstrap, Registry};
-use abuse_contact::{Client, Destinations, Error, Finder, Origin, Scope, Source};
+use std::time::Duration;
+
+use abuse_contact::{Cache, Client, Destinations, Error, Finder, Origin, Scope, Source};
 use common::{Held, Server, emails};
 use hickory_proto::rr::RecordType;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-/// An IP record with one abuse contact at the top level.
+/// An IP record for 8.8.8.0/24 with one abuse contact at the top level.
 const IP_RECORD: &str = r#"{
+  "startAddress": "8.8.8.0",
+  "endAddress": "8.8.8.255",
   "entities": [{
     "roles": ["abuse"],
     "vcardArray": ["vcard", [["email", {}, "text", "network-abuse@example.com"]]]
@@ -229,4 +233,111 @@ async fn a_registry_that_holds_no_record_is_not_a_failure() {
 
     assert_eq!(emails(&found.contacts), Vec::<&str>::new());
     assert_eq!(found.failures.len(), 0);
+}
+
+fn ip(value: &str) -> std::net::IpAddr {
+    value.parse().unwrap()
+}
+
+#[tokio::test]
+async fn two_addresses_in_one_network_ask_the_registry_once() {
+    let rdap = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/ip/8.8.8.8"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(IP_RECORD))
+        .expect(1)
+        .mount(&rdap)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/ip/8.8.8.9"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(IP_RECORD))
+        .expect(0)
+        .mount(&rdap)
+        .await;
+    let dns = Server::start(Vec::new()).await;
+    let finder = finder_for(&rdap, &dns);
+
+    finder.lookup(ip("8.8.8.8")).await.unwrap();
+    let found = finder.lookup(ip("8.8.8.9")).await.unwrap();
+
+    assert_eq!(emails(&found.contacts), ["network-abuse@example.com"]);
+}
+
+#[tokio::test]
+async fn an_address_outside_the_network_asks_the_registry_again() {
+    let rdap = MockServer::start().await;
+    for record_path in ["/ip/8.8.8.8", "/ip/8.8.9.8"] {
+        Mock::given(method("GET"))
+            .and(path(record_path))
+            .respond_with(ResponseTemplate::new(200).set_body_string(IP_RECORD))
+            .expect(1)
+            .mount(&rdap)
+            .await;
+    }
+    let dns = Server::start(Vec::new()).await;
+    let finder = finder_for(&rdap, &dns);
+
+    finder.lookup(ip("8.8.8.8")).await.unwrap();
+    finder.lookup(ip("8.8.9.8")).await.unwrap();
+}
+
+#[tokio::test]
+async fn a_domain_asks_the_registry_once() {
+    let rdap = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/domain/example.com"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(DOMAIN_RECORD))
+        .expect(1)
+        .mount(&rdap)
+        .await;
+    let dns = Server::start(Vec::new()).await;
+    let finder = finder_for(&rdap, &dns);
+    let domain: abuse_contact::DomainName = "example.com".parse().unwrap();
+
+    finder.lookup(domain.clone()).await.unwrap();
+    let found = finder.lookup(domain).await.unwrap();
+
+    assert_eq!(emails(&found.contacts), ["registrar-abuse@example.net"]);
+}
+
+#[tokio::test]
+async fn a_failure_is_not_held() {
+    let rdap = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/ip/8.8.8.8"))
+        .respond_with(ResponseTemplate::new(500))
+        .up_to_n_times(1)
+        .expect(1)
+        .mount(&rdap)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/ip/8.8.8.8"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(IP_RECORD))
+        .expect(1)
+        .mount(&rdap)
+        .await;
+    let dns = Server::start(Vec::new()).await;
+    let finder = finder_for(&rdap, &dns);
+
+    let first = finder.lookup(ip("8.8.8.8")).await.unwrap();
+    let second = finder.lookup(ip("8.8.8.8")).await.unwrap();
+
+    assert_eq!(first.failures.len(), 1);
+    assert_eq!(emails(&second.contacts), ["network-abuse@example.com"]);
+}
+
+#[tokio::test]
+async fn a_cache_that_holds_nothing_asks_the_registry_every_time() {
+    let rdap = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/ip/8.8.8.8"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(IP_RECORD))
+        .expect(2)
+        .mount(&rdap)
+        .await;
+    let dns = Server::start(Vec::new()).await;
+    let finder = finder_for(&rdap, &dns).with_cache(Cache::new(Duration::ZERO));
+
+    finder.lookup(ip("8.8.8.8")).await.unwrap();
+    finder.lookup(ip("8.8.8.8")).await.unwrap();
 }
