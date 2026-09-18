@@ -29,8 +29,9 @@ const RDAP_MEDIA_TYPE: &str = "application/rdap+json";
 
 /// The most the client reads of a record, in bytes.
 ///
-/// The largest record in the test fixtures is 18 KiB. The limit leaves room for a
-/// network with many contacts and stops a server that sends without end.
+/// The largest record in the test fixtures is 95 KiB: a LACNIC network that lists the
+/// name servers of 63 reverse DNS zones. The limit leaves room for a larger network
+/// and stops a server that sends without end.
 pub const MAX_RECORD_BYTES: usize = 1024 * 1024;
 
 /// The most the client reads of a bootstrap registry, in bytes.

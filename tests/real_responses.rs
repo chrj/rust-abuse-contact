@@ -1,7 +1,7 @@
 //! The parser, run against responses captured from the live registries.
 //!
-//! The fixtures in `tests/fixtures/` came from ARIN, RIPE, Verisign and the
-//! Cloudflare registrar. They hold the shapes that a hand-written fixture gets
+//! The fixtures in `tests/fixtures/` came from the five regional registries,
+//! registro.br, Verisign and the Cloudflare registrar. They hold the shapes that a hand-written fixture gets
 //! wrong: the abuse entity sits in a different place at each registry, and the
 //! registry record for a domain carries no address at all.
 
@@ -123,9 +123,19 @@ fn reads_the_preferred_address_from_an_apnic_answer() {
 
 #[test]
 fn reads_the_abuse_contact_from_a_lacnic_answer() {
+    // This network is held by LACNIC itself, so the contact is an address of LACNIC.
     assert_eq!(
         emails(&load("lacnic-ip"), Scope::Network),
         ["ipadmin@lacnic.net"]
+    );
+}
+
+#[test]
+fn a_lacnic_answer_for_a_member_gives_the_contact_of_the_member() {
+    // LACNIC gives the abuse contact of the holder, not one address for the region.
+    assert_eq!(
+        emails(&load("lacnic-member-ip"), Scope::Network),
+        ["ipadmin@antel.net.uy"]
     );
 }
 
@@ -158,6 +168,7 @@ fn every_captured_answer_is_read_without_an_error() {
         "ripe-ip",
         "apnic-ip",
         "lacnic-ip",
+        "lacnic-member-ip",
         "afrinic-ip",
         "registrobr-ip",
         "registry-domain",
@@ -184,6 +195,7 @@ fn every_captured_network_answer_gives_its_range() {
         ("arin-cloudflare-ip", "104.16.0.0", "104.31.255.255"),
         ("arin-ip", "8.8.8.0", "8.8.8.255"),
         ("lacnic-ip", "200.3.12.0", "200.3.15.255"),
+        ("lacnic-member-ip", "200.40.0.0", "200.40.127.255"),
         ("registrobr-ip", "200.160.0.0", "200.160.15.255"),
         ("ripe-ip", "193.0.0.0", "193.0.7.255"),
     ] {

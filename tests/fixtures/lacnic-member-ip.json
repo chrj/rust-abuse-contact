@@ -1,0 +1,3195 @@
+{
+   "rdapConformance":[
+      "rdap_level_0",
+      "cidr0",
+      "lacnic_level_0"
+   ],
+   "notices":[
+      {
+         "title":"Terms and Conditions",
+         "description":[
+            "This is the LACNIC RDAP service. Objects are in RDAP format."
+         ],
+         "links":[
+            {
+               "value":"https://www.lacnic.net/registration-data-access-protocol",
+               "rel":"terms-of-service",
+               "href":"https://www.lacnic.net/registration-data-access-protocol",
+               "type":"text/html"
+            }
+         ]
+      }
+   ],
+   "remarks":[
+      {
+         "description":[
+		"Network: 200.40.0.0/17"
+         ],
+         "title":"remarks"
+      }
+   ],
+   "links":[
+      {
+         "value":"https://rdap.lacnic.net/rdap/ip/200.40.0.0/17",
+         "rel":"self",
+         "type":"application/rdap+json",
+         "href":"https://rdap.lacnic.net/rdap/ip/200.40.0.0/17"
+      },
+      {
+         "value":"https://rdap.lacnic.net/rdap/ip/200.40.0.0/17",
+         "rel":"up",
+         "type":"application/rdap+json",
+         "href":"https://rdap.lacnic.net/rdap/ip/200.0.0.0/8"
+      }
+   ],
+   "events":[
+      {
+         "eventAction":"registration",
+         "eventDate":"1997-08-15T12:00:00Z"
+      },
+      {
+         "eventAction":"last changed",
+         "eventDate":"2001-08-03T12:00:00Z"
+      }
+   ],
+   "objectClassName":"ip network",
+   "handle":"200.40.0.0/17",
+   "parentHandle":"200.0.0.0/8",
+   "startAddress":"200.40.0.0",
+   "endAddress":"200.40.127.255",
+   "ipVersion":"v4",
+   "name":"200.40.0.0 - 200.40.127.255",
+   "type":"ALLOCATED",
+   "status":[ "active" ],
+   "entities":[
+      {
+         "objectClassName":"entity",
+         "handle":"UY-ANTA-LACNIC",
+         "roles":[
+            "registrant"
+         ],
+         "vcardArray":[
+            "vcard",
+            [
+               [
+                  "version",{},
+                  "text",
+                  "4.0"
+               ],
+               [
+                  "fn",{},
+                  "text",
+                  "Administracion Nacional de Telecomunicaciones"
+               ],
+               [
+                  "kind",{},
+                  "text",
+                  "org"
+               ],
+               [
+                  "adr",
+                  {
+                     "label": "Torre de las Telecomunicaciones\nGuatemala\nMontevideo\n11800\nUY"
+                  },
+                  "text",
+                  [
+                     "",
+                     "Torre de las Telecomunicaciones",
+                     "Guatemala",
+                     "Montevideo",
+                     "",
+                     "11800",
+                     "UY"
+                  ]
+               ],
+               [
+                  "tel",{"type":"voice"},
+                  "text",
+                  "+598  29280000#0000"
+               ]
+             ]
+         ],
+         "events":[
+            {
+               "eventAction":"registration",
+               "eventDate":"2002-09-12T12:00:00Z"
+            },
+            {
+               "eventAction":"last changed",
+               "eventDate":"2024-09-02T23:00:36Z"
+            }
+         ],
+         "links":[
+            {
+               "value":"https://rdap.lacnic.net/rdap/entity/UY-ANTA-LACNIC",
+               "rel":"self",
+               "type":"application/rdap+json",
+               "href":"https://rdap.lacnic.net/rdap/entity/UY-ANTA-LACNIC"
+            }
+         ]
+      },
+      {
+         "objectClassName":"entity",
+         "handle":"IIA17",
+         "roles":[
+            "administrative"
+         ],
+         "vcardArray":[
+            "vcard",
+            [
+               [
+                  "version",{},
+                  "text",
+                  "4.0"
+               ],
+               [
+                  "fn",{},
+                  "text",
+                  "Ingenier\u00EDa Internacional Antel"
+               ],
+               [
+                  "kind",{},
+                  "text",
+                  "individual"
+               ],
+               [
+                  "adr",
+                  {
+                     "label": "Torre de las Telecomunicaciones\nGuatemala\nMontevideo\n11800\nUY"
+                  },
+                  "text",
+                  [
+                     "",
+                     "Torre de las Telecomunicaciones",
+                     "Guatemala",
+                     "Montevideo",
+                     "",
+                     "11800",
+                     "UY"
+                  ]
+               ],
+               [
+                  "tel",{"type":"voice"},
+                  "text",
+                  "+598  29280000#0000"
+               ],
+               [
+                  "email",{},
+                  "text",
+                  "uai@antel.com.uy"
+               ],
+               [
+                  "lang",
+                  {},
+                  "language-tag",
+                  "es"
+               ]
+             ]
+         ],
+         "events":[
+            {
+               "eventAction":"registration",
+               "eventDate":"2024-01-18T14:39:25Z"
+            },
+            {
+               "eventAction":"last changed",
+               "eventDate":"2026-09-14T18:45:41Z"
+            }
+         ],
+         "links":[
+            {
+               "value":"https://rdap.lacnic.net/rdap/entity/IIA17",
+               "rel":"self",
+               "type":"application/rdap+json",
+               "href":"https://rdap.lacnic.net/rdap/entity/IIA17"
+            }
+         ]
+      },
+      {
+         "objectClassName":"entity",
+         "handle":"ANU",
+         "roles":[
+            "technical", "abuse"
+         ],
+         "vcardArray":[
+            "vcard",
+            [
+               [
+                  "version",{},
+                  "text",
+                  "4.0"
+               ],
+               [
+                  "fn",{},
+                  "text",
+                  "ANTEL URUGUAY"
+               ],
+               [
+                  "kind",{},
+                  "text",
+                  "individual"
+               ],
+               [
+                  "adr",
+                  {
+                     "label": "P. 2\nMercedes\nMontevideo\n11100\nUY"
+                  },
+                  "text",
+                  [
+                     "",
+                     "P. 2",
+                     "Mercedes",
+                     "Montevideo",
+                     "",
+                     "11100",
+                     "UY"
+                  ]
+               ],
+               [
+                  "tel",{"type":"voice"},
+                  "text",
+                  "+598  29002877#0000"
+               ],
+               [
+                  "email",{},
+                  "text",
+                  "ipadmin@antel.net.uy"
+               ],
+               [
+                  "lang",
+                  {},
+                  "language-tag",
+                  "en"
+               ]
+             ]
+         ],
+         "events":[
+            {
+               "eventAction":"registration",
+               "eventDate":"2002-09-10T12:00:00Z"
+            },
+            {
+               "eventAction":"last changed",
+               "eventDate":"2024-01-17T16:59:16Z"
+            }
+         ],
+         "links":[
+            {
+               "value":"https://rdap.lacnic.net/rdap/entity/ANU",
+               "rel":"self",
+               "type":"application/rdap+json",
+               "href":"https://rdap.lacnic.net/rdap/entity/ANU"
+            }
+         ]
+      }
+   ],
+   "lacnic_originAutnum":["AS6057"],
+   "lacnic_legalRepresentative":"ANTEL URUGUAY",
+   "lacnic_reverseDelegations":[
+      {
+         "startAddress":"200.40.3.0",
+         "endAddress":"200.40.3.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.10.0",
+         "endAddress":"200.40.10.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-14T07:01:02Z",
+                     "status":[
+                        "20260914 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-14T07:01:02Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-14T07:01:02Z",
+                     "status":[
+                        "20260914 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-14T07:01:02Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.13.0",
+         "endAddress":"200.40.13.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.14.0",
+         "endAddress":"200.40.14.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.18.0",
+         "endAddress":"200.40.18.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.20.0",
+         "endAddress":"200.40.21.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.28.0",
+         "endAddress":"200.40.31.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.33.0",
+         "endAddress":"200.40.33.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.34.0",
+         "endAddress":"200.40.35.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z",
+                     "status":[
+                        "20260912 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z",
+                     "status":[
+                        "20260912 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.37.0",
+         "endAddress":"200.40.37.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.38.0",
+         "endAddress":"200.40.38.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.40.0",
+         "endAddress":"200.40.41.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.45.0",
+         "endAddress":"200.40.45.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY [lame - not published].",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 UH"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-11T07:00:51Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.46.0",
+         "endAddress":"200.40.47.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.48.0",
+         "endAddress":"200.40.48.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.56.0",
+         "endAddress":"200.40.56.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.59.0",
+         "endAddress":"200.40.59.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.60.0",
+         "endAddress":"200.40.61.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z",
+                     "status":[
+                        "20260913 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z",
+                     "status":[
+                        "20260913 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.63.0",
+         "endAddress":"200.40.63.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.82.0",
+         "endAddress":"200.40.82.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.97.0",
+         "endAddress":"200.40.97.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.107.0",
+         "endAddress":"200.40.107.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.103.0",
+         "endAddress":"200.40.103.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.0.0",
+         "endAddress":"200.40.1.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z",
+                     "status":[
+                        "20260912 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z",
+                     "status":[
+                        "20260912 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.23.0",
+         "endAddress":"200.40.23.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY [lame - not published].",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 UH"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.19.0",
+         "endAddress":"200.40.19.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.32.0",
+         "endAddress":"200.40.32.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.64.0",
+         "endAddress":"200.40.71.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY [lame - not published].",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 UH"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-10T07:00:56Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.72.0",
+         "endAddress":"200.40.75.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.80.0",
+         "endAddress":"200.40.81.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.83.0",
+         "endAddress":"200.40.83.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.84.0",
+         "endAddress":"200.40.87.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.88.0",
+         "endAddress":"200.40.89.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.92.0",
+         "endAddress":"200.40.93.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-14T07:01:02Z",
+                     "status":[
+                        "20260914 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-14T07:01:02Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-14T07:01:02Z",
+                     "status":[
+                        "20260914 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-14T07:01:02Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.94.0",
+         "endAddress":"200.40.94.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.104.0",
+         "endAddress":"200.40.105.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.106.0",
+         "endAddress":"200.40.106.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.108.0",
+         "endAddress":"200.40.111.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-14T07:01:02Z",
+                     "status":[
+                        "20260914 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-14T07:01:02Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-14T07:01:02Z",
+                     "status":[
+                        "20260914 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-14T07:01:02Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.114.0",
+         "endAddress":"200.40.115.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.120.0",
+         "endAddress":"200.40.127.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.58.0",
+         "endAddress":"200.40.58.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.102.0",
+         "endAddress":"200.40.102.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.24.0",
+         "endAddress":"200.40.24.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.43.0",
+         "endAddress":"200.40.43.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.2.0",
+         "endAddress":"200.40.2.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.8.0",
+         "endAddress":"200.40.8.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.100.0",
+         "endAddress":"200.40.101.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY [lame - not published].",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 UH"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.5.0",
+         "endAddress":"200.40.5.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.11.0",
+         "endAddress":"200.40.11.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z",
+                     "status":[
+                        "20260912 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z",
+                     "status":[
+                        "20260912 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.12.0",
+         "endAddress":"200.40.12.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.22.0",
+         "endAddress":"200.40.22.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z",
+                     "status":[
+                        "20260913 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z",
+                     "status":[
+                        "20260913 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.44.0",
+         "endAddress":"200.40.44.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.62.0",
+         "endAddress":"200.40.62.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY [lame - not published].",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 UH"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.78.0",
+         "endAddress":"200.40.78.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z",
+                     "status":[
+                        "20260917 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-17T07:00:47Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.9.0",
+         "endAddress":"200.40.9.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.16.0",
+         "endAddress":"200.40.17.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY [lame - not published].",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 UH"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.27.0",
+         "endAddress":"200.40.27.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.77.0",
+         "endAddress":"200.40.77.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z",
+                     "status":[
+                        "20260913 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z",
+                     "status":[
+                        "20260913 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.112.0",
+         "endAddress":"200.40.112.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY [lame - not published].",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 UH"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-12T07:00:59Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.53.0",
+         "endAddress":"200.40.53.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.4.0",
+         "endAddress":"200.40.4.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY [lame - not published].",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 UH"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-12T07:01:00Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z",
+                     "status":[
+                        "20260916 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-16T07:01:05Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.6.0",
+         "endAddress":"200.40.6.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z",
+                     "status":[
+                        "20260918 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-18T07:01:25Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      },
+      {
+         "startAddress":"200.40.49.0",
+         "endAddress":"200.40.49.255",
+         "nameservers":[
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS1.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z",
+                     "status":[
+                        "20260913 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z"
+                  }
+               ]
+            },
+            {
+               "objectClassName":"nameserver",
+               "ldhName":"NS2.ANTELDATA.COM.UY.",
+               "events":[
+                  {
+                     "eventAction":"delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z",
+                     "status":[
+                        "20260913 AA"
+                     ]
+                  },
+                  {
+                     "eventAction":"last correct delegation check",
+                     "eventDate":"2026-09-13T07:01:08Z"
+                  }
+               ]
+            }
+         ],
+         "secureDNS": {
+         "zoneSigned": false,
+         "delegationSigned": false,
+         "dsData":[
+         ]         
+   }
+      }
+   ],
+   "cidr0_cidrs":[
+      {
+         "v4prefix":"200.40.0.0",
+         "length": 17
+      }
+   ],
+   "port43":"whois.lacnic.net"
+}
