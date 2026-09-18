@@ -92,10 +92,12 @@
 //! default. For AFRINIC space, where RDAP publishes no abuse entity, Abusix is the only
 //! source that answers.
 //!
-//! # State of this crate
+//! # Asking every source
 //!
-//! Each source is its own call. One call that asks every source and merges the answers
-//! is not written yet.
+//! `Finder` asks every source for a target at the same time, and gives the contacts
+//! ordered by [`rank`]. A source that fails does not fail the lookup: its error is
+//! returned beside the contacts from the sources that answered. It needs the `http`
+//! and `dns` features.
 
 #![forbid(unsafe_code)]
 

@@ -47,10 +47,10 @@ hickory-proto = "0.26"
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread"] }
 wiremock = "0.6"
 
-# The example makes live requests, so it needs the client.
+# The example asks every live source, so it needs the client and the resolver.
 [[example]]
 name = "lookup"
-required-features = ["http"]
+required-features = ["http", "dns"]
 
 # The example asks the live zones, so it needs the resolver.
 [[example]]
