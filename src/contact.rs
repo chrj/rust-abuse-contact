@@ -1,5 +1,6 @@
 //! What a lookup returns: an address, what it governs, and where it came from.
 
+use std::collections::HashSet;
 use std::fmt;
 
 use crate::error::ValidationError;
@@ -172,7 +173,11 @@ pub fn rank(mut contacts: Vec<Contact>) -> Vec<Contact> {
             .then_with(|| a.scope.cmp(&b.scope))
             .then_with(|| a.email.cmp(&b.email))
     });
-    contacts.dedup_by(|a, b| a.email == b.email && a.scope == b.scope);
+    // After the sort, the first contact for an address and scope is the one from the
+    // best source. A repeat can come after contacts from the same source, so it is not
+    // always next to the first one.
+    let mut seen = HashSet::new();
+    contacts.retain(|contact| seen.insert((contact.email.clone(), contact.scope)));
     contacts
 }
 
@@ -297,6 +302,26 @@ mod tests {
 
         assert_eq!(ranked.len(), 1);
         assert_eq!(ranked[0].source, Source::Abusix);
+    }
+
+    #[test]
+    fn rank_drops_a_repeat_with_another_address_between() {
+        let rdap = || Source::Rdap {
+            server: "rdap.example".to_owned(),
+        };
+        let ranked = rank(vec![
+            contact("abuse@example.com", Scope::Network, Source::Abusix),
+            contact("abuse@example.com", Scope::Network, rdap()),
+            contact("noc@example.com", Scope::Network, rdap()),
+        ]);
+
+        assert_eq!(
+            ranked,
+            [
+                contact("abuse@example.com", Scope::Network, rdap()),
+                contact("noc@example.com", Scope::Network, rdap()),
+            ]
+        );
     }
 
     #[test]
