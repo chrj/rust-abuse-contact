@@ -1,4 +1,4 @@
-//! Finds the abuse contact for an address or a name, over the live registries.
+//! Finds the abuse contacts for an address or a name, from every live source.
 //!
 //! ```sh
 //! cargo run --example lookup -- 8.8.8.8
@@ -7,7 +7,7 @@
 
 use std::net::IpAddr;
 
-use abuse_contact::{Client, DomainName, Query, Scope, rank};
+use abuse_contact::{Client, DomainName, Finder, Query, Resolver};
 
 #[tokio::main]
 async fn main() {
@@ -26,37 +26,27 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // The variant picks the sources, so read the argument as an address first.
-    let (query, scope) = match target.parse::<IpAddr>() {
-        Ok(ip) => (Query::Ip(ip), Scope::Network),
-        Err(_) => (
-            Query::Domain(target.parse::<DomainName>()?),
-            Scope::Registrar,
-        ),
+    let query = match target.parse::<IpAddr>() {
+        Ok(ip) => Query::Ip(ip),
+        Err(_) => Query::Domain(target.parse::<DomainName>()?),
     };
 
-    let client = Client::new().await?;
+    let finder = Finder::new(Client::new().await?, Resolver::new()?);
+    let found = finder.lookup(query).await?;
 
-    let Some(record) = client.lookup(query).await? else {
-        println!("{target}: the registry holds no record");
-        return Ok(());
-    };
+    for failure in &found.failures {
+        eprintln!("{target}: {failure}");
+    }
 
-    let contacts = rank(record.abuse_contacts(scope));
-    if contacts.is_empty() {
-        println!(
-            "{target}: the record from {} carries no abuse contact",
-            record.server
-        );
-        if let Some(href) = record.response.related_href() {
-            println!("  the registrar record is at {href}");
-        }
+    if found.contacts.is_empty() {
+        println!("{target}: no source gave an abuse contact");
         return Ok(());
     }
 
-    for contact in contacts {
+    for contact in &found.contacts {
         println!(
-            "{target}: {} ({:?}, from {})",
-            contact.email, contact.scope, record.server
+            "{target}: {} ({:?}, from {:?})",
+            contact.email, contact.scope, contact.source
         );
     }
 

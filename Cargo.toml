@@ -33,8 +33,12 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 # Resolves names for the client, so it can drop addresses that are not public. The
-# HTTP client already depends on it, so this adds no crate.
-tokio = { version = "1", optional = true, default-features = false, features = ["net"] }
+# HTTP client already depends on it. "macros" lets the finder ask the sources at the
+# same time. The resolver turns it on too, so with both features on it adds no crate.
+tokio = { version = "1", optional = true, default-features = false, features = [
+    "macros",
+    "net",
+] }
 
 [dev-dependencies]
 # Builds the answers of the DNS server the resolver tests start. The resolver already
@@ -43,10 +47,10 @@ hickory-proto = "0.26"
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread"] }
 wiremock = "0.6"
 
-# The example makes live requests, so it needs the client.
+# The example asks every live source, so it needs the client and the resolver.
 [[example]]
 name = "lookup"
-required-features = ["http"]
+required-features = ["http", "dns"]
 
 # The example asks the live zones, so it needs the resolver.
 [[example]]

@@ -18,21 +18,43 @@ contact it finds with the scope it covers, and leaves the choice to you.
 cargo add abuse-contact
 ```
 
-## State
+## Find the contacts
 
-RDAP is fetched. `Client` picks the server from the IANA bootstrap registries and
-returns the record.
+```rust
+use abuse_contact::{Client, Finder, Resolver};
 
-The DNS sources are looked up. `Resolver` asks the Abusix and abuse.net zones, and
-checks that a domain takes mail before it gives `abuse@` at the domain. For AFRINIC
-space, where RDAP publishes no abuse entity, Abusix is the only source that answers.
+let finder = Finder::new(Client::new().await?, Resolver::new()?);
 
-Each source is its own call. One call that asks every source and merges the answers
-is not written yet.
+let found = finder.lookup("196.216.2.1".parse::<std::net::IpAddr>()?).await?;
+for contact in &found.contacts {
+    println!("{} ({:?})", contact.email, contact.scope);
+}
+for failure in &found.failures {
+    eprintln!("{failure}");
+}
+```
 
-`Client` sits behind the `http` feature and `Resolver` behind the `dns` feature. Both
-are on by default. Turn them off to take the readers alone, with no HTTP stack and no
-resolver:
+`Finder` asks every source for the target at the same time. An IP address goes to
+RDAP and Abusix. A domain name goes to RDAP, abuse.net and RFC 2142. The contacts come
+back ordered by `rank`, and an address that two sources give is kept one time.
+
+A source that fails does not fail the lookup. Its error is in `failures`, beside the
+contacts from the sources that answered. Check `failures` before you read an empty
+`contacts` as "no contact is published". A private or reserved address is an error,
+and no source is asked about it.
+
+There is a runnable version of this:
+
+```sh
+cargo run --example lookup -- 8.8.8.8
+cargo run --example lookup -- example.com
+```
+
+## Features
+
+`Client` fetches RDAP and sits behind the `http` feature. `Resolver` asks the DNS
+sources and sits behind the `dns` feature. `Finder` needs both. Both are on by
+default. Turn them off to take the readers alone, with no HTTP stack and no resolver:
 
 ```sh
 cargo add abuse-contact --no-default-features
@@ -68,7 +90,7 @@ cargo run --example zones -- 196.216.2.1
 cargo run --example zones -- google.com
 ```
 
-## Look up an address
+## Fetch an RDAP record
 
 ```rust
 use abuse_contact::{Client, Scope, rank};
@@ -87,13 +109,6 @@ names it as its source.
 
 The client reads at most 1 MiB of a record and 4 MiB of a bootstrap registry. A server
 that sends more is refused, so it cannot use up the memory of the process.
-
-There is a runnable version of this:
-
-```sh
-cargo run --example lookup -- 8.8.8.8
-cargo run --example lookup -- example.com
-```
 
 A private or reserved address is refused. A regional registry holds a record for the
 block such an address sits in, and that record names IANA. Answering with it gives a

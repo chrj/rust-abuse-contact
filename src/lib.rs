@@ -92,10 +92,12 @@
 //! default. For AFRINIC space, where RDAP publishes no abuse entity, Abusix is the only
 //! source that answers.
 //!
-//! # State of this crate
+//! # Asking every source
 //!
-//! Each source is its own call. One call that asks every source and merges the answers
-//! is not written yet.
+//! `Finder` asks every source for a target at the same time, and gives the contacts
+//! ordered by [`rank`]. A source that fails does not fail the lookup: its error is
+//! returned beside the contacts from the sources that answered. It needs the `http`
+//! and `dns` features.
 
 #![forbid(unsafe_code)]
 
@@ -109,6 +111,8 @@ mod contact;
 #[cfg(feature = "http")]
 mod destination;
 mod error;
+#[cfg(all(feature = "http", feature = "dns"))]
+mod finder;
 mod nat64;
 mod query;
 #[cfg(feature = "dns")]
@@ -120,6 +124,8 @@ pub use contact::{Contact, EmailAddress, Scope, Source, rank};
 #[cfg(feature = "http")]
 pub use destination::Destinations;
 pub use error::{Error, ValidationError};
+#[cfg(all(feature = "http", feature = "dns"))]
+pub use finder::{Failure, Finder, Found, Origin};
 pub use query::{DomainName, Query, is_public};
 #[cfg(feature = "dns")]
 pub use resolver::Resolver;
