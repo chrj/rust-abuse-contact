@@ -109,6 +109,8 @@ mod contact;
 #[cfg(feature = "http")]
 mod destination;
 mod error;
+#[cfg(all(feature = "http", feature = "dns"))]
+mod finder;
 mod nat64;
 mod query;
 #[cfg(feature = "dns")]
@@ -120,6 +122,8 @@ pub use contact::{Contact, EmailAddress, Scope, Source, rank};
 #[cfg(feature = "http")]
 pub use destination::Destinations;
 pub use error::{Error, ValidationError};
+#[cfg(all(feature = "http", feature = "dns"))]
+pub use finder::{Failure, Finder, Found, Origin};
 pub use query::{DomainName, Query, is_public};
 #[cfg(feature = "dns")]
 pub use resolver::Resolver;
