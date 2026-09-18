@@ -4,6 +4,9 @@
 //! their jCard, and the links. Fields this crate does not read are ignored, so a new
 //! field on the registry side does not turn a working lookup into a parse error.
 
+use std::net::IpAddr;
+use std::ops::RangeInclusive;
+
 use serde::Deserialize;
 
 use crate::contact::{Contact, EmailAddress, Scope, Source};
@@ -17,6 +20,15 @@ pub struct Response {
     /// Links to other records, including the registrar record for a domain.
     #[serde(default)]
     pub links: Vec<Link>,
+    /// The first address of the network, on an IP record.
+    ///
+    /// This is kept as it came, so a value that is not a string does not stop the
+    /// rest of the record from being read. [`Response::range`] reads it.
+    #[serde(rename = "startAddress")]
+    pub start_address: Option<serde_json::Value>,
+    /// The last address of the network, on an IP record.
+    #[serde(rename = "endAddress")]
+    pub end_address: Option<serde_json::Value>,
 }
 
 /// A contact on an RDAP object.
@@ -48,10 +60,28 @@ pub struct Link {
     pub href: Option<String>,
 }
 
+/// Reads an address out of a JSON value, when the value is a string that holds one.
+fn address(value: &serde_json::Value) -> Option<IpAddr> {
+    value.as_str()?.parse().ok()
+}
+
 /// The role an entity carries when it accepts abuse reports.
 const ABUSE_ROLE: &str = "abuse";
 
 impl Response {
+    /// Returns the addresses the network covers, on an IP record.
+    ///
+    /// Returns `None` when the record gives no range, or a range that cannot be read:
+    /// an end that is not an address, two ends in different families, or an end
+    /// before the start.
+    pub fn range(&self) -> Option<RangeInclusive<IpAddr>> {
+        let start = address(self.start_address.as_ref()?)?;
+        let end = address(self.end_address.as_ref()?)?;
+
+        let same_family = start.is_ipv4() == end.is_ipv4();
+        (same_family && start <= end).then_some(start..=end)
+    }
+
     /// Returns the registrar record for a domain, when the registry names one.
     ///
     /// The registry record usually carries the abuse address of the registrar, under
@@ -416,5 +446,34 @@ mod tests {
         );
 
         assert_eq!(emails_of(&response, Scope::Network), ["good@example.com"]);
+    }
+
+    #[test]
+    fn reads_the_range_of_a_network() {
+        let response =
+            parse(r#"{"startAddress": "8.8.8.0", "endAddress": "8.8.8.255", "entities": []}"#);
+
+        assert_eq!(
+            response.range(),
+            Some("8.8.8.0".parse().unwrap()..="8.8.8.255".parse().unwrap())
+        );
+    }
+
+    #[test]
+    fn a_range_that_cannot_be_read_is_none() {
+        for json in [
+            // A domain record carries no range.
+            r#"{}"#,
+            r#"{"startAddress": "8.8.8.0"}"#,
+            r#"{"startAddress": "8.8.8.0", "endAddress": "not an address"}"#,
+            // The two ends are in different families.
+            r#"{"startAddress": "8.8.8.0", "endAddress": "2001:db8::ff"}"#,
+            // The range ends before it starts.
+            r#"{"startAddress": "8.8.8.255", "endAddress": "8.8.8.0"}"#,
+            // The field is not a string. The rest of the record is still read.
+            r#"{"startAddress": 1, "endAddress": 2}"#,
+        ] {
+            assert_eq!(parse(json).range(), None, "{json}");
+        }
     }
 }
