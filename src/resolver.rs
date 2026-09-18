@@ -108,7 +108,14 @@ impl Resolver {
     ///
     /// Returns [`Error::Dns`] when the lookup does not finish.
     pub async fn abuse_net(&self, domain: &DomainName) -> Result<Vec<Contact>, Error> {
-        let records = self.txt(&dns::abuse_net_name(domain)).await?;
+        // A long domain with the zone appended is longer than DNS allows. The zone
+        // cannot hold that name, and the resolver refuses to ask for it.
+        let name = dns::abuse_net_name(domain);
+        if name.len() > DomainName::MAX_BYTES {
+            return Ok(Vec::new());
+        }
+
+        let records = self.txt(&name).await?;
         Ok(dns::contacts_from_txt(
             &records,
             Scope::Domain,

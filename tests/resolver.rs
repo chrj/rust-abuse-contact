@@ -330,6 +330,24 @@ async fn reads_the_abuse_net_contacts_for_a_domain() {
 }
 
 #[tokio::test]
+async fn a_domain_too_long_for_the_abuse_net_zone_gives_no_contacts() {
+    let server = Server::start(Vec::new()).await;
+    // 253 bytes, the longest a domain can be. With the zone appended, the name is
+    // longer than DNS allows, so the zone cannot hold it.
+    let domain = format!("{0}.{0}.{0}.{1}", "a".repeat(63), "b".repeat(61));
+    assert_eq!(domain.len(), 253);
+
+    let contacts = server
+        .resolver()
+        .abuse_net(&domain.parse().unwrap())
+        .await
+        .unwrap();
+
+    assert_eq!(emails(&contacts), Vec::<&str>::new());
+    assert_eq!(server.asked(), Vec::new());
+}
+
+#[tokio::test]
 async fn a_domain_with_an_mx_gives_abuse_at_the_domain() {
     let server = Server::start(vec![(
         "example.com",
