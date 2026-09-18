@@ -98,6 +98,11 @@
 //! ordered by [`rank`]. A source that fails does not fail the lookup: its error is
 //! returned beside the contacts from the sources that answered. It needs the `http`
 //! and `dns` features.
+//!
+//! `Finder` holds the RDAP answers in a `Cache`, so it does not ask a registry about
+//! the same network or the same domain again. The answer for an address is held for
+//! the whole range the registry returned. The resolver holds the DNS answers, for the
+//! TTL of each record.
 
 #![forbid(unsafe_code)]
 
@@ -105,6 +110,8 @@ pub mod bootstrap;
 pub mod dns;
 pub mod rdap;
 
+#[cfg(all(feature = "http", feature = "dns"))]
+mod cache;
 #[cfg(feature = "http")]
 mod client;
 mod contact;
@@ -118,6 +125,8 @@ mod query;
 #[cfg(feature = "dns")]
 mod resolver;
 
+#[cfg(all(feature = "http", feature = "dns"))]
+pub use cache::Cache;
 #[cfg(feature = "http")]
 pub use client::{Client, MAX_BOOTSTRAP_BYTES, MAX_RECORD_BYTES, Record};
 pub use contact::{Contact, EmailAddress, Scope, Source, rank};

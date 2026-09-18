@@ -3,7 +3,8 @@
 use std::fmt;
 use std::net::IpAddr;
 
-use crate::client::{Client, Record};
+use crate::cache::Cache;
+use crate::client::Client;
 use crate::contact::{Contact, Scope, rank};
 use crate::error::Error;
 use crate::query::{DomainName, Query};
@@ -13,6 +14,10 @@ use crate::resolver::Resolver;
 ///
 /// An IP address goes to RDAP and Abusix. A domain name goes to RDAP, abuse.net and
 /// RFC 2142.
+///
+/// The finder holds the RDAP answers in a [`Cache`], so it does not ask a registry
+/// about the same network or the same domain again. [`Finder::with_cache`] sets how
+/// long an answer is held.
 ///
 /// ```no_run
 /// use abuse_contact::{Client, Finder, Resolver};
@@ -34,12 +39,26 @@ use crate::resolver::Resolver;
 pub struct Finder {
     client: Client,
     resolver: Resolver,
+    cache: Cache,
 }
 
 impl Finder {
     /// Returns a finder that asks RDAP with this client and DNS with this resolver.
+    ///
+    /// It holds the RDAP answers in [`Cache::default`].
     pub fn new(client: Client, resolver: Resolver) -> Self {
-        Self { client, resolver }
+        Self {
+            client,
+            resolver,
+            cache: Cache::default(),
+        }
+    }
+
+    /// Returns the finder with the RDAP answers held in this cache.
+    ///
+    /// Keep a clone of the cache to read its size or to clear it.
+    pub fn with_cache(self, cache: Cache) -> Self {
+        Self { cache, ..self }
     }
 
     /// Asks every source for the target and returns what they found.
@@ -68,32 +87,64 @@ impl Finder {
             });
         }
 
-        let (rdap, abusix) = tokio::join!(self.client.lookup_ip(ip), self.resolver.abusix(ip));
+        let (rdap, abusix) = tokio::join!(self.rdap_ip(ip), self.resolver.abusix(ip));
 
-        Ok(merge([
-            (
-                Origin::Rdap,
-                rdap.map(|record| contacts(record, Scope::Network)),
-            ),
-            (Origin::Abusix, abusix),
-        ]))
+        Ok(merge([(Origin::Rdap, rdap), (Origin::Abusix, abusix)]))
     }
 
     async fn lookup_domain(&self, domain: &DomainName) -> Found {
         let (rdap, abuse_net, rfc2142) = tokio::join!(
-            self.client.lookup_domain(domain),
+            self.rdap_domain(domain),
             self.resolver.abuse_net(domain),
             self.resolver.rfc2142(domain),
         );
 
         merge([
-            (
-                Origin::Rdap,
-                rdap.map(|record| contacts(record, Scope::Registrar)),
-            ),
+            (Origin::Rdap, rdap),
             (Origin::AbuseNet, abuse_net),
             (Origin::Rfc2142, rfc2142.map(Vec::from_iter)),
         ])
+    }
+
+    /// Returns the RDAP contacts for an address, from the cache when it holds them.
+    ///
+    /// The answer is held for the range the registry gives. A registry that holds no
+    /// record, or gives no range that holds the address, gives nothing to hold.
+    async fn rdap_ip(&self, ip: IpAddr) -> Result<Vec<Contact>, Error> {
+        if let Some(contacts) = self.cache.network(ip) {
+            return Ok(contacts);
+        }
+
+        let Some(record) = self.client.lookup_ip(ip).await? else {
+            return Ok(Vec::new());
+        };
+        let contacts = record.abuse_contacts(Scope::Network);
+
+        if let Some(range) = record.response.range()
+            && range.contains(&ip)
+        {
+            self.cache.put_network(range, contacts.clone());
+        }
+        Ok(contacts)
+    }
+
+    /// Returns the RDAP contacts for a domain, from the cache when it holds them.
+    ///
+    /// A registry that holds no record is held too: the name is not registered.
+    async fn rdap_domain(&self, domain: &DomainName) -> Result<Vec<Contact>, Error> {
+        if let Some(contacts) = self.cache.domain(domain) {
+            return Ok(contacts);
+        }
+
+        let contacts = self
+            .client
+            .lookup_domain(domain)
+            .await?
+            .map(|record| record.abuse_contacts(Scope::Registrar))
+            .unwrap_or_default();
+
+        self.cache.put_domain(domain.clone(), contacts.clone());
+        Ok(contacts)
     }
 }
 
@@ -150,13 +201,6 @@ impl fmt::Display for Origin {
             Origin::Rfc2142 => "the RFC 2142 check",
         })
     }
-}
-
-/// Returns the contacts in a record. A registry that holds no record gives none.
-fn contacts(record: Option<Record>, scope: Scope) -> Vec<Contact> {
-    record
-        .map(|record| record.abuse_contacts(scope))
-        .unwrap_or_default()
 }
 
 /// Joins what each source gave into one ranked list, and keeps the failures beside it.

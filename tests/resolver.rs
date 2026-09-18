@@ -276,3 +276,30 @@ async fn a_domain_that_does_not_exist_gives_nothing() {
 
     assert!(found.is_none());
 }
+
+#[tokio::test]
+async fn a_second_lookup_within_the_ttl_is_answered_without_a_query() {
+    let server = Server::start(vec![(
+        "229.132.16.104.abuse-contacts.abusix.zone",
+        RecordType::TXT,
+        Held::Txt(vec![vec!["abuse@cloudflare.com"]]),
+    )])
+    .await;
+    let resolver = server.resolver();
+
+    for _ in 0..2 {
+        let contacts = resolver
+            .abusix("104.16.132.229".parse().unwrap())
+            .await
+            .unwrap();
+        assert_eq!(emails(&contacts), ["abuse@cloudflare.com"]);
+    }
+
+    assert_eq!(
+        server.asked(),
+        [(
+            "229.132.16.104.abuse-contacts.abusix.zone.".to_owned(),
+            RecordType::TXT
+        )]
+    );
+}

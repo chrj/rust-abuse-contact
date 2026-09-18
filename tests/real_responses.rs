@@ -175,3 +175,22 @@ fn every_captured_answer_is_read_without_an_error() {
         }
     }
 }
+
+#[test]
+fn every_captured_network_answer_gives_its_range() {
+    for (name, start, end) in [
+        ("afrinic-ip", "196.216.2.0", "196.216.3.255"),
+        ("apnic-ip", "203.119.100.0", "203.119.103.255"),
+        ("arin-cloudflare-ip", "104.16.0.0", "104.31.255.255"),
+        ("arin-ip", "8.8.8.0", "8.8.8.255"),
+        ("lacnic-ip", "200.3.12.0", "200.3.15.255"),
+        ("registrobr-ip", "200.160.0.0", "200.160.15.255"),
+        ("ripe-ip", "193.0.0.0", "193.0.7.255"),
+    ] {
+        assert_eq!(
+            load(name).range(),
+            Some(start.parse().unwrap()..=end.parse().unwrap()),
+            "{name}"
+        );
+    }
+}

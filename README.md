@@ -50,6 +50,42 @@ cargo run --example lookup -- 8.8.8.8
 cargo run --example lookup -- example.com
 ```
 
+## Caching
+
+The regional registries limit how often you can ask. `Finder` holds each RDAP answer
+in a `Cache` for one hour, so it does not ask a registry about the same network or the
+same domain again.
+
+An answer for an address is held for the whole range the registry returned, so it
+answers for every other address in that range. When two held ranges hold an address,
+the narrower one answers. An answer for a domain is held for the name. A failed
+lookup is not held.
+
+```rust
+use std::time::Duration;
+
+use abuse_contact::{Cache, Client, Finder, Resolver};
+
+let cache = Cache::new(Duration::from_secs(10 * 60));
+let finder = Finder::new(Client::new().await?, Resolver::new()?).with_cache(cache.clone());
+
+// The cache drops an answer whose time is over when it stores the next one. It sets
+// no other limit on its size. Set your own:
+if cache.len() > 10_000 {
+    cache.clear();
+}
+```
+
+`Cache::new(Duration::ZERO)` holds nothing.
+
+DNS answers are held by the resolver, for the TTL of each record. A name that does
+not exist is held for the time its zone gives for that.
+
+A registry can give a large range to one holder and a small part of it to another,
+with its own abuse contact. When the cache holds only the large range, it answers for
+an address in the small one with the contact of the large one. Use a shorter hold when
+that matters to you.
+
 ## Features
 
 `Client` fetches RDAP and sits behind the `http` feature. `Resolver` asks the DNS
