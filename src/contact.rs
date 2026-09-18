@@ -30,6 +30,9 @@ const PLACEHOLDERS: [&str; 3] = ["REDACTED", "NOT DISCLOSED", "PLEASE QUERY"];
 /// One address stands for every network in the region, so it cannot be the contact
 /// of any one of them. Verified against six LACNIC networks in four countries, which
 /// all gave the same answer.
+///
+/// `ipadmin@lacnic.net` is not one. RDAP gives it only for the networks that LACNIC
+/// holds itself, and gives each other network the address of its holder.
 const WITHHELD: [&str; 1] = ["removed@lacnic.net"];
 
 impl EmailAddress {

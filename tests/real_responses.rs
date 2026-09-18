@@ -1,7 +1,7 @@
 //! The parser, run against responses captured from the live registries.
 //!
-//! The fixtures in `tests/fixtures/` came from ARIN, RIPE, Verisign and the
-//! Cloudflare registrar. They hold the shapes that a hand-written fixture gets
+//! The fixtures in `tests/fixtures/` came from the five regional registries,
+//! registro.br, Verisign and the Cloudflare registrar. They hold the shapes that a hand-written fixture gets
 //! wrong: the abuse entity sits in a different place at each registry, and the
 //! registry record for a domain carries no address at all.
 

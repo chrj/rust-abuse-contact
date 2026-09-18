@@ -210,7 +210,7 @@ the tests in `tests/real_responses.rs` run against them.
 | ARIN | Under the registrant, and again at the top level | Yes |
 | RIPE | Top level | Yes |
 | APNIC | Top level, with `pref` on the abuse mailbox | Yes |
-| LACNIC | Top level | Yes, one for the registry |
+| LACNIC | Top level | Yes |
 | AFRINIC | There is no abuse entity | **No** |
 | registro.br | Top level, marked technical and abuse | **No, the jCard holds no email** |
 | Verisign (.com) | Under the registrar | Yes |
@@ -239,6 +239,11 @@ Abusix answers for AFRINIC space, where RDAP does not. For LACNIC space it answe
 `removed@lacnic.net` for every network: six networks in four countries all gave that
 one address, so it marks a contact that was withdrawn rather than naming a mailbox.
 `EmailAddress` rejects it as `WithheldEmail`.
+
+LACNIC RDAP does not withhold. It gives the address of the holder: thirteen networks
+in nine countries gave twelve different addresses. `ipadmin@lacnic.net` comes back only
+for networks that LACNIC holds itself, so it is a real contact for those networks and
+not a marker.
 
 jCard is positional. A property is an array with the name first, the parameters
 second, and the value fourth, as in `["email", {"pref": "1"}, "text", "a@b.com"]`. A
