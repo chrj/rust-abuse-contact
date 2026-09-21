@@ -138,3 +138,13 @@ pub use finder::{Failure, Finder, Found, Origin};
 pub use query::{DomainName, Query, is_public};
 #[cfg(feature = "dns")]
 pub use resolver::Resolver;
+
+/// The README shows the same calls as the documentation above. This anchor gives
+/// its code blocks to rustdoc as doctests, so a change to the API that the README
+/// misses breaks the test run. It is not part of the public documentation.
+///
+/// The README examples use `Client`, `Finder` and `Resolver`, which need both
+/// features. A build without them does not compile the README.
+#[cfg(all(doctest, feature = "http", feature = "dns"))]
+#[doc = include_str!("../README.md")]
+struct ReadmeExamples;

@@ -20,17 +20,22 @@ cargo add abuse-contact
 
 ## Find the contacts
 
-```rust
+```rust,no_run
 use abuse_contact::{Client, Finder, Resolver};
 
-let finder = Finder::new(Client::new().await?, Resolver::new()?);
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let finder = Finder::new(Client::new().await?, Resolver::new()?);
 
-let found = finder.lookup("196.216.2.1".parse::<std::net::IpAddr>()?).await?;
-for contact in &found.contacts {
-    println!("{} ({:?})", contact.email, contact.scope);
-}
-for failure in &found.failures {
-    eprintln!("{failure}");
+    let found = finder.lookup("196.216.2.1".parse::<std::net::IpAddr>()?).await?;
+    for contact in &found.contacts {
+        println!("{} ({:?})", contact.email, contact.scope);
+    }
+    for failure in &found.failures {
+        eprintln!("{failure}");
+    }
+
+    Ok(())
 }
 ```
 
@@ -61,18 +66,24 @@ answers for every other address in that range. When two held ranges hold an addr
 the narrower one answers. An answer for a domain is held for the name. A failed
 lookup is not held.
 
-```rust
+```rust,no_run
 use std::time::Duration;
 
 use abuse_contact::{Cache, Client, Finder, Resolver};
 
-let cache = Cache::new(Duration::from_secs(10 * 60));
-let finder = Finder::new(Client::new().await?, Resolver::new()?).with_cache(cache.clone());
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let cache = Cache::new(Duration::from_secs(10 * 60));
+    let finder =
+        Finder::new(Client::new().await?, Resolver::new()?).with_cache(cache.clone());
 
-// The cache drops an answer whose time is over when it stores the next one. It sets
-// no other limit on its size. Set your own:
-if cache.len() > 10_000 {
-    cache.clear();
+    // The cache drops an answer whose time is over when it stores the next one. It
+    // sets no other limit on its size. Set your own:
+    if cache.len() > 10_000 {
+        cache.clear();
+    }
+
+    Ok(())
 }
 ```
 
@@ -98,17 +109,22 @@ cargo add abuse-contact --no-default-features
 
 ## Ask the DNS sources
 
-```rust
+```rust,no_run
 use abuse_contact::Resolver;
 
-let resolver = Resolver::new()?;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let resolver = Resolver::new()?;
 
-// AFRINIC publishes no abuse contact in RDAP. Abusix has one.
-let network = resolver.abusix("196.216.2.1".parse()?).await?;
+    // AFRINIC publishes no abuse contact in RDAP. Abusix has one.
+    let network = resolver.abusix("196.216.2.1".parse()?).await?;
 
-let domain = "example.com".parse()?;
-let operator = resolver.abuse_net(&domain).await?;
-let guess = resolver.rfc2142(&domain).await?;
+    let domain = "example.com".parse()?;
+    let operator = resolver.abuse_net(&domain).await?;
+    let guess = resolver.rfc2142(&domain).await?;
+
+    Ok(())
+}
 ```
 
 A name that a zone does not hold gives no contacts, not an error. A lookup that gets
@@ -128,15 +144,20 @@ cargo run --example zones -- google.com
 
 ## Fetch an RDAP record
 
-```rust
+```rust,no_run
 use abuse_contact::{Client, Scope, rank};
 
-let client = Client::new().await?;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = Client::new().await?;
 
-if let Some(record) = client.lookup_ip("8.8.8.8".parse()?).await? {
-    for contact in rank(record.abuse_contacts(Scope::Network)) {
-        println!("{} ({:?})", contact.email, contact.scope);
+    if let Some(record) = client.lookup_ip("8.8.8.8".parse()?).await? {
+        for contact in rank(record.abuse_contacts(Scope::Network)) {
+            println!("{} ({:?})", contact.email, contact.scope);
+        }
     }
+
+    Ok(())
 }
 ```
 
@@ -177,27 +198,39 @@ Build a client with `Destinations::Any` only for a registry mirror that you run.
 ## Read an RDAP answer
 
 ```rust
-use abuse_contact::{Scope, rank};
 use abuse_contact::rdap::Response;
+use abuse_contact::{Scope, rank};
 
-let response: Response = serde_json::from_str(body)?;
+// `body` is the JSON that an RDAP server sent you.
+fn print_contacts(body: &str) -> Result<(), serde_json::Error> {
+    let response: Response = serde_json::from_str(body)?;
 
-for contact in rank(response.abuse_contacts(Scope::Network, "rdap.arin.net")) {
-    println!("{} ({:?})", contact.email, contact.scope);
+    for contact in rank(response.abuse_contacts(Scope::Network, "rdap.arin.net")) {
+        println!("{} ({:?})", contact.email, contact.scope);
+    }
+
+    Ok(())
 }
 ```
 
 ## Read a DNS answer
 
 ```rust
+use std::net::IpAddr;
+
 use abuse_contact::dns::{abusix_name, contacts_from_txt};
 use abuse_contact::{Scope, Source};
 
 // Ask your resolver for the TXT records at this name.
-let name = abusix_name("104.16.132.229".parse()?);
+let ip: IpAddr = "104.16.132.229".parse().unwrap();
+let name = abusix_name(ip);
 assert_eq!(name, "229.132.16.104.abuse-contacts.abusix.zone");
 
+// The TXT records that your resolver gave back.
+let records = vec!["abuse@cloudflare.com".to_owned()];
+
 let contacts = contacts_from_txt(&records, Scope::Network, Source::Abusix);
+assert_eq!(contacts[0].email.as_str(), "abuse@cloudflare.com");
 ```
 
 ## What the registries do
