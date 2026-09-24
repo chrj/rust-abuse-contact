@@ -14,7 +14,7 @@ use std::time::Duration;
 use abuse_contact::{Cache, Client, Destinations, Error, Finder, Origin, Scope, Source};
 use common::{Held, Server, emails};
 use hickory_proto::rr::RecordType;
-use wiremock::matchers::{method, path};
+use wiremock::matchers::{method, path, path_regex};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 /// An IP record for 8.8.8.0/24 with one abuse contact at the top level.
@@ -340,4 +340,176 @@ async fn a_cache_that_holds_nothing_asks_the_registry_every_time() {
 
     finder.lookup(ip("8.8.8.8")).await.unwrap();
     finder.lookup(ip("8.8.8.8")).await.unwrap();
+}
+
+#[tokio::test]
+async fn a_domain_gets_the_network_contacts_of_its_host() {
+    let rdap = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/domain/example.com"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(DOMAIN_RECORD))
+        .mount(&rdap)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/ip/8.8.8.8"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(IP_RECORD))
+        .mount(&rdap)
+        .await;
+    let dns = Server::start(vec![
+        (
+            "example.com",
+            RecordType::A,
+            Held::A(std::net::Ipv4Addr::new(8, 8, 8, 8)),
+        ),
+        (
+            "8.8.8.8.abuse-contacts.abusix.zone",
+            RecordType::TXT,
+            Held::Txt(vec![vec!["noc@example.org"]]),
+        ),
+    ])
+    .await;
+
+    let found = finder_for(&rdap, &dns)
+        .lookup("example.com".parse::<abuse_contact::DomainName>().unwrap())
+        .await
+        .unwrap();
+
+    // The domain has an address and no MX, so RFC 2142 gives abuse@ at the domain.
+    assert_eq!(
+        emails(&found.contacts),
+        [
+            "network-abuse@example.com",
+            "registrar-abuse@example.net",
+            "noc@example.org",
+            "abuse@example.com"
+        ]
+    );
+    let scopes: Vec<Scope> = found.contacts.iter().map(|c| c.scope).collect();
+    assert_eq!(
+        scopes,
+        [
+            Scope::Network,
+            Scope::Registrar,
+            Scope::Network,
+            Scope::Domain
+        ]
+    );
+    assert_eq!(found.failures.len(), 0);
+}
+
+#[tokio::test]
+async fn two_hosts_in_one_network_ask_the_registry_once() {
+    let rdap = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/domain/example.com"))
+        .respond_with(ResponseTemplate::new(404))
+        .mount(&rdap)
+        .await;
+    Mock::given(method("GET"))
+        .and(path_regex("^/ip/"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(IP_RECORD))
+        .expect(1)
+        .mount(&rdap)
+        .await;
+    let dns = Server::start(vec![
+        (
+            "example.com",
+            RecordType::A,
+            Held::A(std::net::Ipv4Addr::new(8, 8, 8, 8)),
+        ),
+        (
+            "example.com",
+            RecordType::A,
+            Held::A(std::net::Ipv4Addr::new(8, 8, 8, 9)),
+        ),
+    ])
+    .await;
+
+    let found = finder_for(&rdap, &dns)
+        .lookup("example.com".parse::<abuse_contact::DomainName>().unwrap())
+        .await
+        .unwrap();
+
+    let network: Vec<&str> = found
+        .contacts
+        .iter()
+        .filter(|c| c.scope == Scope::Network)
+        .map(|c| c.email.as_str())
+        .collect();
+    assert_eq!(network, ["network-abuse@example.com"]);
+}
+
+#[tokio::test]
+async fn a_host_at_a_private_address_asks_no_network_source() {
+    let rdap = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/domain/example.com"))
+        .respond_with(ResponseTemplate::new(404))
+        .mount(&rdap)
+        .await;
+    Mock::given(method("GET"))
+        .and(path_regex("^/ip/"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(IP_RECORD))
+        .expect(0)
+        .mount(&rdap)
+        .await;
+    let dns = Server::start(vec![(
+        "example.com",
+        RecordType::A,
+        Held::A(std::net::Ipv4Addr::new(10, 0, 0, 1)),
+    )])
+    .await;
+
+    let found = finder_for(&rdap, &dns)
+        .lookup("example.com".parse::<abuse_contact::DomainName>().unwrap())
+        .await
+        .unwrap();
+
+    // A private host has no network to report to. That is not a failure.
+    assert_eq!(emails(&found.contacts), ["abuse@example.com"]);
+    assert_eq!(found.failures.len(), 0);
+    assert!(
+        !dns.asked()
+            .iter()
+            .any(|(name, _)| name.ends_with("abuse-contacts.abusix.zone.")),
+        "{:?}",
+        dns.asked()
+    );
+}
+
+#[tokio::test]
+async fn a_failing_address_lookup_keeps_the_other_answers() {
+    let rdap = rdap_answers(
+        "/domain/example.com",
+        ResponseTemplate::new(200).set_body_string(DOMAIN_RECORD),
+    )
+    .await;
+    let dns = Server::start(vec![
+        (
+            "example.com",
+            RecordType::MX,
+            Held::Mx(vec![(10, "mx1.example.com.")]),
+        ),
+        // A zone that fails, fails for both address types.
+        ("example.com", RecordType::A, Held::ServFail),
+        ("example.com", RecordType::AAAA, Held::ServFail),
+    ])
+    .await;
+
+    let found = finder_for(&rdap, &dns)
+        .lookup("example.com".parse::<abuse_contact::DomainName>().unwrap())
+        .await
+        .unwrap();
+
+    assert_eq!(
+        emails(&found.contacts),
+        ["registrar-abuse@example.net", "abuse@example.com"]
+    );
+    assert_eq!(found.failures.len(), 1);
+    assert_eq!(found.failures[0].origin, Origin::Host);
+    assert!(
+        matches!(found.failures[0].error, Error::Dns { .. }),
+        "{:?}",
+        found.failures[0].error
+    );
 }
