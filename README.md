@@ -43,6 +43,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 RDAP and Abusix. A domain name goes to RDAP, abuse.net and RFC 2142. The contacts come
 back ordered by `rank`, and an address that two sources give is kept one time.
 
+A domain also gets the contacts of the network that hosts it. `Finder` looks up the
+addresses of the domain and asks RDAP and Abusix about the first four public ones.
+These contacts have `Scope::Network`. A host at a private address is skipped.
+
 A source that fails does not fail the lookup. Its error is in `failures`, beside the
 contacts from the sources that answered. Check `failures` before you read an empty
 `contacts` as "no contact is published". A private or reserved address is an error,
