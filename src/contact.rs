@@ -122,6 +122,7 @@ pub enum Scope {
 
 /// Where a contact came from.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[non_exhaustive]
 pub enum Source {
     /// An RDAP entity with the `abuse` role, from the server named here.
     Rdap {

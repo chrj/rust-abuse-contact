@@ -217,6 +217,7 @@ impl fmt::Display for Failure {
 /// server that answered. A source that failed can have no server to name, so a
 /// failure names the source with this.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Origin {
     /// RDAP, from the server the bootstrap registry names.
     Rdap,
