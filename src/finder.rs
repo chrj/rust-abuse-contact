@@ -10,10 +10,18 @@ use crate::error::Error;
 use crate::query::{DomainName, Query};
 use crate::resolver::Resolver;
 
+/// The most hosts of one domain that the finder asks the network sources about.
+///
+/// Each host costs an RDAP request and an Abusix lookup. A domain with many addresses
+/// is usually one service in one or two networks, so the first few are enough.
+const MAX_HOSTS: usize = 4;
+
 /// Asks every source for a target, at the same time, and merges the answers.
 ///
 /// An IP address goes to RDAP and Abusix. A domain name goes to RDAP, abuse.net and
-/// RFC 2142.
+/// RFC 2142. The finder also looks up the addresses of the domain, and asks RDAP and
+/// Abusix about the network of each host. Thus a domain also gets the contact that
+/// can take its host off the air.
 ///
 /// The finder holds the RDAP answers in a [`Cache`], so it does not ask a registry
 /// about the same network or the same domain again. [`Finder::with_cache`] sets how
@@ -93,17 +101,45 @@ impl Finder {
     }
 
     async fn lookup_domain(&self, domain: &DomainName) -> Found {
-        let (rdap, abuse_net, rfc2142) = tokio::join!(
+        let (rdap, abuse_net, rfc2142, hosts) = tokio::join!(
             self.rdap_domain(domain),
             self.resolver.abuse_net(domain),
             self.resolver.rfc2142(domain),
+            self.host_networks(domain),
         );
 
-        merge([
-            (Origin::Rdap, rdap),
-            (Origin::AbuseNet, abuse_net),
-            (Origin::Rfc2142, rfc2142.map(Vec::from_iter)),
-        ])
+        merge(
+            [
+                (Origin::Rdap, rdap),
+                (Origin::AbuseNet, abuse_net),
+                (Origin::Rfc2142, rfc2142.map(Vec::from_iter)),
+            ]
+            .into_iter()
+            .chain(hosts),
+        )
+    }
+
+    /// Returns what RDAP and Abusix give for the network of each host of a domain.
+    ///
+    /// The hosts are asked one after the other, so a second host in the network of
+    /// the first is answered from the cache. A host at a private address has no
+    /// network to report to, and is skipped.
+    async fn host_networks(
+        &self,
+        domain: &DomainName,
+    ) -> Vec<(Origin, Result<Vec<Contact>, Error>)> {
+        let addresses = match self.resolver.addresses(domain).await {
+            Ok(addresses) => addresses,
+            Err(error) => return vec![(Origin::Host, Err(error))],
+        };
+
+        let mut answers = Vec::new();
+        for ip in public_hosts(addresses) {
+            let (rdap, abusix) = tokio::join!(self.rdap_ip(ip), self.resolver.abusix(ip));
+            answers.push((Origin::Rdap, rdap));
+            answers.push((Origin::Abusix, abusix));
+        }
+        answers
     }
 
     /// Returns the RDAP contacts for an address, from the cache when it holds them.
@@ -190,6 +226,8 @@ pub enum Origin {
     AbuseNet,
     /// The MX and address lookups that decide whether `abuse@` at the domain is given.
     Rfc2142,
+    /// The address lookup that finds the hosts of a domain.
+    Host,
 }
 
 impl fmt::Display for Origin {
@@ -199,8 +237,22 @@ impl fmt::Display for Origin {
             Origin::Abusix => "Abusix",
             Origin::AbuseNet => "abuse.net",
             Origin::Rfc2142 => "the RFC 2142 check",
+            Origin::Host => "the address lookup of the domain",
         })
     }
+}
+
+/// Returns the hosts to ask the network sources about: the public addresses, each
+/// one time, and at most [`MAX_HOSTS`] of them.
+fn public_hosts(addresses: impl IntoIterator<Item = IpAddr>) -> Vec<IpAddr> {
+    let mut hosts: Vec<IpAddr> = Vec::new();
+    for ip in addresses.into_iter().map(crate::query::unmap) {
+        if crate::is_public(ip) && !hosts.contains(&ip) {
+            hosts.push(ip);
+        }
+    }
+    hosts.truncate(MAX_HOSTS);
+    hosts
 }
 
 /// Joins what each source gave into one ranked list, and keeps the failures beside it.
@@ -311,6 +363,42 @@ mod tests {
         assert_eq!(found.contacts, []);
         let origins: Vec<Origin> = found.failures.iter().map(|f| f.origin).collect();
         assert_eq!(origins, [Origin::Rdap, Origin::Abusix]);
+    }
+
+    fn ips(values: &[&str]) -> Vec<IpAddr> {
+        values.iter().map(|value| value.parse().unwrap()).collect()
+    }
+
+    #[test]
+    fn public_hosts_keeps_each_public_address_one_time() {
+        let tests = [
+            ("no addresses", vec![], vec![]),
+            ("a repeat", vec!["8.8.8.8", "8.8.8.8"], vec!["8.8.8.8"]),
+            (
+                "a private and a loopback address",
+                vec!["10.0.0.1", "8.8.8.8", "127.0.0.1", "::1"],
+                vec!["8.8.8.8"],
+            ),
+            (
+                "an IPv4 address in IPv6 form",
+                vec!["::ffff:8.8.8.8", "8.8.8.8"],
+                vec!["8.8.8.8"],
+            ),
+            (
+                "more than the limit",
+                vec!["8.8.8.1", "8.8.8.2", "8.8.8.3", "8.8.8.4", "8.8.8.5"],
+                vec!["8.8.8.1", "8.8.8.2", "8.8.8.3", "8.8.8.4"],
+            ),
+            (
+                "a private address does not count toward the limit",
+                vec!["10.0.0.1", "8.8.8.1", "8.8.8.2", "8.8.8.3", "8.8.8.4"],
+                vec!["8.8.8.1", "8.8.8.2", "8.8.8.3", "8.8.8.4"],
+            ),
+        ];
+
+        for (name, given, want) in tests {
+            assert_eq!(public_hosts(ips(&given)), ips(&want), "{name}");
+        }
     }
 
     #[test]
