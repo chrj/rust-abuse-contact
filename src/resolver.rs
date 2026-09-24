@@ -151,7 +151,7 @@ impl Resolver {
 
         let takes_mail = if exchanges.is_empty() {
             // RFC 5321 section 5.1: with no MX, mail goes to the address of the domain.
-            self.has_address(&name).await?
+            !self.addresses(domain).await?.is_empty()
         } else {
             dns::names_a_mail_host(exchanges.iter().map(String::as_str))
         };
@@ -183,12 +183,17 @@ impl Resolver {
         }
     }
 
-    /// Returns whether a name has an IPv4 or IPv6 address.
-    async fn has_address(&self, name: &str) -> Result<bool, Error> {
-        match self.inner.lookup_ip(name).await {
-            Ok(lookup) => Ok(lookup.iter().next().is_some()),
-            Err(error) if error.is_no_records_found() => Ok(false),
-            Err(source) => Err(dns_error(name, source)),
+    /// Returns the IPv4 and IPv6 addresses of a domain.
+    ///
+    /// A name that does not exist, or has no address, gives no addresses. That is an
+    /// answer, not a failure.
+    pub(crate) async fn addresses(&self, domain: &DomainName) -> Result<Vec<IpAddr>, Error> {
+        let name = absolute(domain.as_str());
+
+        match self.inner.lookup_ip(name.as_str()).await {
+            Ok(lookup) => Ok(lookup.iter().collect()),
+            Err(error) if error.is_no_records_found() => Ok(Vec::new()),
+            Err(source) => Err(dns_error(&name, source)),
         }
     }
 }
