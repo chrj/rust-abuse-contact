@@ -49,8 +49,8 @@ These contacts have `Scope::Network`. A host at a private address is skipped.
 
 A source that fails does not fail the lookup. Its error is in `failures`, beside the
 contacts from the sources that answered. Check `failures` before you read an empty
-`contacts` as "no contact is published". A private or reserved address is an error,
-and no source is asked about it.
+`contacts` as "no contact is published". An IP address that is private or reserved
+is an error, and no source is asked about it.
 
 There is a runnable version of this:
 
