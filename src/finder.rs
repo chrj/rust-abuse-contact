@@ -1,5 +1,6 @@
 //! One lookup that asks every source that answers for a target.
 
+use std::collections::HashSet;
 use std::fmt;
 use std::net::IpAddr;
 
@@ -246,14 +247,13 @@ impl fmt::Display for Origin {
 /// Returns the hosts to ask the network sources about: the public addresses, each
 /// one time, and at most [`MAX_HOSTS`] of them.
 fn public_hosts(addresses: impl IntoIterator<Item = IpAddr>) -> Vec<IpAddr> {
-    let mut hosts: Vec<IpAddr> = Vec::new();
-    for ip in addresses.into_iter().map(crate::query::unmap) {
-        if crate::is_public(ip) && !hosts.contains(&ip) {
-            hosts.push(ip);
-        }
-    }
-    hosts.truncate(MAX_HOSTS);
-    hosts
+    let mut seen = HashSet::new();
+    addresses
+        .into_iter()
+        .map(crate::query::unmap)
+        .filter(|ip| crate::is_public(*ip) && seen.insert(*ip))
+        .take(MAX_HOSTS)
+        .collect()
 }
 
 /// Joins what each source gave into one ranked list, and keeps the failures beside it.
@@ -400,6 +400,20 @@ mod tests {
         for (name, given, want) in tests {
             assert_eq!(public_hosts(ips(&given)), ips(&want), "{name}");
         }
+    }
+
+    #[test]
+    fn public_hosts_stops_reading_at_the_limit() {
+        let mut read = 0;
+        let addresses = ips(&["10.0.0.1", "8.8.8.1", "8.8.8.1", "8.8.8.2", "8.8.8.3"])
+            .into_iter()
+            .chain(ips(&["8.8.8.4", "8.8.8.5", "8.8.8.6"]))
+            .inspect(|_| read += 1);
+
+        let hosts = public_hosts(addresses);
+
+        assert_eq!(hosts, ips(&["8.8.8.1", "8.8.8.2", "8.8.8.3", "8.8.8.4"]));
+        assert_eq!(read, 6);
     }
 
     #[test]
