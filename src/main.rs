@@ -38,6 +38,12 @@ Exit status:
   2  The command line is not correct
 ";
 
+/// The exit status when each target was looked up.
+const SUCCESS_STATUS: u8 = 0;
+
+/// The exit status when a target was not looked up, or the command could not go on.
+const FAILURE_STATUS: u8 = 1;
+
 /// The exit status for a command line that is not correct.
 const USAGE_STATUS: u8 = 2;
 
@@ -114,7 +120,7 @@ async fn main() -> ExitCode {
         Ok(finder) => finder,
         Err(error) => {
             eprintln!("abuse-contact: {error}");
-            return ExitCode::FAILURE;
+            return ExitCode::from(FAILURE_STATUS);
         }
     };
 
@@ -127,21 +133,33 @@ async fn main() -> ExitCode {
         run(&finder, format, targets, &mut out, &mut err).await
     };
 
+    let (status, message) = exit_status(&result);
+    if let Some(message) = message {
+        eprintln!("{message}");
+    }
+    ExitCode::from(status)
+}
+
+/// Returns the exit status for the result of [`run`], and the message for the user
+/// when the run stopped on an error.
+fn exit_status(result: &Result<bool, IoError>) -> (u8, Option<String>) {
     match result {
-        Ok(true) => ExitCode::SUCCESS,
-        Ok(false) => ExitCode::FAILURE,
+        Ok(true) => (SUCCESS_STATUS, None),
+        Ok(false) => (FAILURE_STATUS, None),
         // A reader such as `head` closed the pipe. It has what it wants.
         Err(IoError::Write(error)) if error.kind() == io::ErrorKind::BrokenPipe => {
-            ExitCode::SUCCESS
+            (SUCCESS_STATUS, None)
         }
-        Err(IoError::Write(error)) => {
-            eprintln!("abuse-contact: cannot write the results: {error}");
-            ExitCode::FAILURE
-        }
-        Err(IoError::Read(error)) => {
-            eprintln!("abuse-contact: cannot read the targets from standard input: {error}");
-            ExitCode::FAILURE
-        }
+        Err(IoError::Write(error)) => (
+            FAILURE_STATUS,
+            Some(format!("abuse-contact: cannot write the results: {error}")),
+        ),
+        Err(IoError::Read(error)) => (
+            FAILURE_STATUS,
+            Some(format!(
+                "abuse-contact: cannot read the targets from standard input: {error}"
+            )),
+        ),
     }
 }
 
@@ -209,6 +227,20 @@ fn stdin_targets() -> impl Iterator<Item = io::Result<String>> {
     })
 }
 
+/// Looks up one target.
+///
+/// [`Finder`] asks the live sources. The tests give fixed answers, so they need no
+/// network.
+trait Lookup {
+    async fn lookup(&self, query: Query) -> Result<Found, Error>;
+}
+
+impl Lookup for Finder {
+    async fn lookup(&self, query: Query) -> Result<Found, Error> {
+        Finder::lookup(self, query).await
+    }
+}
+
 async fn build_finder() -> Result<Finder, Error> {
     Ok(Finder::new(Client::new().await?, Resolver::new()?))
 }
@@ -216,9 +248,10 @@ async fn build_finder() -> Result<Finder, Error> {
 /// Looks up each target and writes what it found, one target at a time.
 ///
 /// The targets share the finder, so a second target in a known network is answered
-/// from its cache. Returns whether each target was looked up.
+/// from its cache. A target that was not looked up does not stop the run. Returns
+/// whether each target was looked up.
 async fn run(
-    finder: &Finder,
+    finder: &impl Lookup,
     format: Format,
     targets: impl IntoIterator<Item = io::Result<String>>,
     out: &mut impl Write,
@@ -496,6 +529,149 @@ mod tests {
             err.starts_with("8.8.8.8: 10.0.0.1 is a private, reserved or documentation address"),
             "{err}"
         );
+    }
+
+    /// Answers each lookup without the network: 10.0.0.1 is an error, and each other
+    /// target gives the contacts of [`found`].
+    struct Answers;
+
+    impl Lookup for Answers {
+        async fn lookup(&self, query: Query) -> Result<Found, Error> {
+            match query {
+                Query::Ip(ip) if ip == IpAddr::from([10, 0, 0, 1]) => Err(not_public()),
+                _ => Ok(found()),
+            }
+        }
+    }
+
+    /// A writer whose reader closed the pipe.
+    struct ClosedPipe;
+
+    impl Write for ClosedPipe {
+        fn write(&mut self, _: &[u8]) -> io::Result<usize> {
+            Err(io::ErrorKind::BrokenPipe.into())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    fn targets(values: &[&str]) -> Vec<io::Result<String>> {
+        strings(values).into_iter().map(Ok).collect()
+    }
+
+    #[tokio::test]
+    async fn run_looks_up_each_target() {
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+
+        let result = run(
+            &Answers,
+            Format::Text,
+            targets(&["8.8.8.8", "example.com"]),
+            &mut out,
+            &mut err,
+        )
+        .await;
+
+        assert!(matches!(result, Ok(true)), "{result:?}");
+        let out = String::from_utf8(out).unwrap();
+        let looked_up: Vec<&str> = out.lines().filter_map(|l| l.split('\t').next()).collect();
+        assert_eq!(
+            looked_up,
+            ["8.8.8.8", "8.8.8.8", "example.com", "example.com"]
+        );
+        assert_eq!(err, b"");
+    }
+
+    #[tokio::test]
+    async fn run_goes_on_after_a_target_that_was_not_looked_up() {
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+
+        let result = run(
+            &Answers,
+            Format::Text,
+            targets(&["10.0.0.1", "not a name", "8.8.8.8"]),
+            &mut out,
+            &mut err,
+        )
+        .await;
+
+        assert!(matches!(result, Ok(false)), "{result:?}");
+        assert_eq!(String::from_utf8(out).unwrap().lines().count(), 2);
+        let err = String::from_utf8(err).unwrap();
+        let failed: Vec<&str> = err.lines().filter_map(|l| l.split(": ").next()).collect();
+        assert_eq!(failed, ["10.0.0.1", "not a name"]);
+    }
+
+    #[tokio::test]
+    async fn run_stops_at_a_read_error() {
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        let targets = vec![
+            Ok("8.8.8.8".to_owned()),
+            Err(io::Error::other("the device is gone")),
+            Ok("example.com".to_owned()),
+        ];
+
+        let result = run(&Answers, Format::Text, targets, &mut out, &mut err).await;
+
+        assert!(matches!(result, Err(IoError::Read(_))), "{result:?}");
+        let out = String::from_utf8(out).unwrap();
+        let looked_up: Vec<&str> = out.lines().filter_map(|l| l.split('\t').next()).collect();
+        assert_eq!(looked_up, ["8.8.8.8", "8.8.8.8"]);
+    }
+
+    #[tokio::test]
+    async fn run_stops_when_the_reader_closes_the_pipe() {
+        let mut err = Vec::new();
+
+        let result = run(
+            &Answers,
+            Format::Json,
+            targets(&["8.8.8.8"]),
+            &mut ClosedPipe,
+            &mut err,
+        )
+        .await;
+
+        assert!(
+            matches!(&result, Err(IoError::Write(error)) if error.kind() == io::ErrorKind::BrokenPipe),
+            "{result:?}"
+        );
+    }
+
+    #[test]
+    fn exit_status_gives_the_status_and_what_to_tell_the_user() {
+        let tests = [
+            ("each target looked up", Ok(true), 0, None),
+            ("a target not looked up", Ok(false), 1, None),
+            (
+                "the reader closed the pipe",
+                Err(IoError::Write(io::ErrorKind::BrokenPipe.into())),
+                0,
+                None,
+            ),
+            (
+                "the output is full",
+                Err(IoError::Write(io::Error::other("no space left"))),
+                1,
+                Some("abuse-contact: cannot write the results: no space left"),
+            ),
+            (
+                "the input failed",
+                Err(IoError::Read(io::Error::other("the device is gone"))),
+                1,
+                Some(
+                    "abuse-contact: cannot read the targets from standard input: the device is gone",
+                ),
+            ),
+        ];
+
+        for (name, result, status, message) in tests {
+            let (got_status, got_message) = exit_status(&result);
+            assert_eq!(got_status, status, "{name}");
+            assert_eq!(got_message.as_deref(), message, "{name}");
+        }
     }
 
     #[test]
