@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0](https://github.com/chrj/rust-abuse-contact/compare/v0.2.0...v0.3.0) - 2026-09-25
+
+### Added
+
+- Add the abuse-contact command. ([#20](https://github.com/chrj/rust-abuse-contact/pull/20))
+- [**breaking**] Find the network contacts of the hosts of a domain. ([#19](https://github.com/chrj/rust-abuse-contact/pull/19))
+
 ## [0.2.0](https://github.com/chrj/rust-abuse-contact/compare/v0.1.0...v0.2.0) - 2026-09-18
 
 ### Added
