@@ -120,6 +120,17 @@ pub enum Scope {
     Domain,
 }
 
+/// Shows the scope as one lowercase word: `network`, `registrar` or `domain`.
+impl fmt::Display for Scope {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Scope::Network => "network",
+            Scope::Registrar => "registrar",
+            Scope::Domain => "domain",
+        })
+    }
+}
+
 /// Where a contact came from.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
@@ -151,6 +162,19 @@ impl Source {
             Source::AbuseNet => 2,
             Source::Rfc2142 => 3,
         }
+    }
+}
+
+/// Shows an RDAP source as the server that answered, such as `rdap.arin.net`. Shows
+/// the other sources by name: `abusix`, `abuse.net` or `rfc2142`.
+impl fmt::Display for Source {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Source::Rdap { server } => server,
+            Source::Abusix => "abusix",
+            Source::AbuseNet => "abuse.net",
+            Source::Rfc2142 => "rfc2142",
+        })
     }
 }
 
@@ -326,6 +350,38 @@ mod tests {
                 contact("noc@example.com", Scope::Network, rdap()),
             ]
         );
+    }
+
+    #[test]
+    fn a_scope_shows_as_one_lowercase_word() {
+        let tests = [
+            (Scope::Network, "network"),
+            (Scope::Registrar, "registrar"),
+            (Scope::Domain, "domain"),
+        ];
+
+        for (scope, want) in tests {
+            assert_eq!(scope.to_string(), want);
+        }
+    }
+
+    #[test]
+    fn an_rdap_source_shows_as_its_server_and_the_others_by_name() {
+        let tests = [
+            (
+                Source::Rdap {
+                    server: "rdap.arin.net".to_owned(),
+                },
+                "rdap.arin.net",
+            ),
+            (Source::Abusix, "abusix"),
+            (Source::AbuseNet, "abuse.net"),
+            (Source::Rfc2142, "rfc2142"),
+        ];
+
+        for (source, want) in tests {
+            assert_eq!(source.to_string(), want);
+        }
     }
 
     #[test]

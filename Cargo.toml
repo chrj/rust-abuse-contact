@@ -16,6 +16,8 @@ default = ["http", "dns"]
 http = ["dep:reqwest", "dep:tokio"]
 # The resolver for the Abusix and abuse.net zones. Turn it off to take the readers alone.
 dns = ["dep:hickory-resolver"]
+# The `abuse-contact` command. It adds the tokio runtime, and no other crate.
+cli = ["http", "dns", "tokio/rt"]
 
 [dependencies]
 # Looks up the TXT and MX records. It reads the resolver configuration of the system.
@@ -46,6 +48,11 @@ tokio = { version = "1", optional = true, default-features = false, features = [
 hickory-proto = "0.26"
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread"] }
 wiremock = "0.6"
+
+[[bin]]
+name = "abuse-contact"
+path = "src/main.rs"
+required-features = ["cli"]
 
 # The example asks every live source, so it needs the client and the resolver.
 [[example]]

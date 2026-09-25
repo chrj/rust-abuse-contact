@@ -18,6 +18,35 @@ contact it finds with the scope it covers, and leaves the choice to you.
 cargo add abuse-contact
 ```
 
+## Use the command
+
+```sh
+cargo install abuse-contact --features cli
+```
+
+```text
+$ abuse-contact 8.8.8.8 github.com
+8.8.8.8	network-abuse@google.com	network	rdap.arin.net
+github.com	noc@github.com	network	rdap.arin.net
+github.com	abusecomplaints@markmonitor.com	registrar	rdap.verisign.com
+github.com	abuse@github.com	domain	abuse.net
+```
+
+Each contact is one line: the target, the address, the scope and the source, divided
+by tabs. A source that did not answer goes to standard error. With `--json`, the
+command writes one JSON object for each target.
+
+With no target as an argument, the command reads one target from each line of
+standard input:
+
+```sh
+cut -f1 blocked.log | sort -u | abuse-contact --json
+```
+
+The exit status is 0 when each target was looked up, 1 when a target could not be
+looked up, and 2 when the command line is not correct. A source that did not answer
+does not change the exit status.
+
 ## Find the contacts
 
 ```rust,no_run
@@ -110,6 +139,9 @@ default. Turn them off to take the readers alone, with no HTTP stack and no reso
 ```sh
 cargo add abuse-contact --no-default-features
 ```
+
+The `abuse-contact` command sits behind the `cli` feature, which is off by default.
+It adds the tokio runtime to the build.
 
 ## Ask the DNS sources
 
