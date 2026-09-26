@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0](https://github.com/chrj/rust-abuse-contact/compare/v0.3.0...v0.4.0) - 2026-09-26
+
+### Added
+
+- Write only the addresses with --email. ([#21](https://github.com/chrj/rust-abuse-contact/pull/21))
+
 ## [0.3.0](https://github.com/chrj/rust-abuse-contact/compare/v0.2.0...v0.3.0) - 2026-09-25
 
 ### Added
