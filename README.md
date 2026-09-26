@@ -36,6 +36,13 @@ Each contact is one line: the target, the address, the scope and the source, div
 by tabs. A source that did not answer goes to standard error. With `--json`, the
 command writes one JSON object for each target.
 
+With `--email`, the command writes only the address of each contact, one on each line.
+A target that gives the same address for two scopes gives it one time:
+
+```sh
+abuse-contact --email 8.8.8.8 github.com
+```
+
 With no target as an argument, the command reads one target from each line of
 standard input:
 
