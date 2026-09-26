@@ -7,6 +7,7 @@
 //! cargo install abuse-contact --features cli
 //! ```
 
+use std::collections::HashSet;
 use std::fmt;
 use std::io::{self, BufRead, IsTerminal, Write};
 use std::net::IpAddr;
@@ -16,7 +17,7 @@ use abuse_contact::{Client, DomainName, Error, Finder, Found, Query, Resolver};
 use serde_json::json;
 
 const USAGE: &str = "\
-Usage: abuse-contact [--json] [TARGET]...
+Usage: abuse-contact [--json | --email] [TARGET]...
 
 Finds where to report abuse for an IP address or a domain name.
 
@@ -25,12 +26,14 @@ from each line of standard input. It skips empty lines and lines that start with
 
 Options:
   --json         Write one JSON object for each target, one object on each line
+  --email        Write only the address of each contact, one address on each line
   -h, --help     Show this help
   -V, --version  Show the version
 
 Output:
   Each contact is one line: the target, the address, the scope and the source,
-  divided by tabs. A source that did not answer goes to standard error.
+  divided by tabs. With --email, an address that a target gives two times is
+  written one time. A source that did not answer goes to standard error.
 
 Exit status:
   0  Each target was looked up. A source that did not answer does not change this.
@@ -65,6 +68,8 @@ enum Format {
     Text,
     /// One JSON object for each target.
     Json,
+    /// Only the address of each contact, one on each line.
+    Email,
 }
 
 /// A command line that is not correct. The message says what to change.
@@ -191,7 +196,8 @@ fn parse_args(args: Vec<String>) -> Result<Command, UsageError> {
             continue;
         }
         match arg.as_str() {
-            "--json" => format = Format::Json,
+            "--json" => format = one_format(format, Format::Json)?,
+            "--email" => format = one_format(format, Format::Email)?,
             "-h" | "--help" => return Ok(Command::Help),
             "-V" | "--version" => return Ok(Command::Version),
             _ => {
@@ -203,6 +209,15 @@ fn parse_args(args: Vec<String>) -> Result<Command, UsageError> {
     }
 
     Ok(Command::Lookup { format, targets })
+}
+
+/// Returns the format an option asks for, or an error when an earlier option asked
+/// for a different one.
+fn one_format(earlier: Format, asked: Format) -> Result<Format, UsageError> {
+    if earlier != Format::Text && earlier != asked {
+        return Err(UsageError("give --json or --email, not both".to_owned()));
+    }
+    Ok(asked)
 }
 
 /// Returns the target on one line of input, or `None` for an empty line or a comment.
@@ -270,6 +285,7 @@ async fn run(
         match format {
             Format::Text => write_text(out, err, &target, &found),
             Format::Json => writeln!(out, "{}", to_json(&target, &found)),
+            Format::Email => write_emails(out, err, &target, &found),
         }
         .and_then(|()| out.flush())
         .map_err(IoError::Write)?;
@@ -285,9 +301,8 @@ fn write_text(
     target: &str,
     found: &Result<Found, Error>,
 ) -> io::Result<()> {
-    let found = match found {
-        Ok(found) => found,
-        Err(error) => return writeln!(err, "{target}: {error}"),
+    let Some(found) = write_failures(err, target, found)? else {
+        return Ok(());
     };
 
     for contact in &found.contacts {
@@ -297,13 +312,52 @@ fn write_text(
             contact.email, contact.scope, contact.source
         )?;
     }
+    Ok(())
+}
+
+/// Writes each address to `out` one time, in rank order, and each failure to `err`.
+///
+/// A source can give one address for two scopes. Without the scope, the second line
+/// says nothing new.
+fn write_emails(
+    out: &mut impl Write,
+    err: &mut impl Write,
+    target: &str,
+    found: &Result<Found, Error>,
+) -> io::Result<()> {
+    let Some(found) = write_failures(err, target, found)? else {
+        return Ok(());
+    };
+
+    let mut seen = HashSet::new();
+    for contact in found.contacts.iter().filter(|c| seen.insert(&c.email)) {
+        writeln!(out, "{}", contact.email)?;
+    }
+    Ok(())
+}
+
+/// Writes to `err` each source that did not answer, or why the target was not looked
+/// up. Returns what the lookup found, or `None` when the target was not looked up.
+fn write_failures<'a>(
+    err: &mut impl Write,
+    target: &str,
+    found: &'a Result<Found, Error>,
+) -> io::Result<Option<&'a Found>> {
+    let found = match found {
+        Ok(found) => found,
+        Err(error) => {
+            writeln!(err, "{target}: {error}")?;
+            return Ok(None);
+        }
+    };
+
     for failure in &found.failures {
         writeln!(err, "{target}: {failure}")?;
     }
     if found.contacts.is_empty() && found.failures.is_empty() {
         writeln!(err, "{target}: no source gave an abuse contact")?;
     }
-    Ok(())
+    Ok(Some(found))
 }
 
 /// Returns what was found for one target as a JSON object.
@@ -415,6 +469,26 @@ mod tests {
                 "json after a target",
                 vec!["8.8.8.8", "--json"],
                 Ok(lookup(Format::Json, &["8.8.8.8"])),
+            ),
+            (
+                "email only",
+                vec!["--email", "8.8.8.8"],
+                Ok(lookup(Format::Email, &["8.8.8.8"])),
+            ),
+            (
+                "json twice",
+                vec!["--json", "--json", "8.8.8.8"],
+                Ok(lookup(Format::Json, &["8.8.8.8"])),
+            ),
+            (
+                "json and email",
+                vec!["--json", "--email", "8.8.8.8"],
+                Err(UsageError("give --json or --email, not both".to_owned())),
+            ),
+            (
+                "email and json",
+                vec!["--email", "--json"],
+                Err(UsageError("give --json or --email, not both".to_owned())),
             ),
             ("short help", vec!["-h"], Ok(Command::Help)),
             (
@@ -672,6 +746,86 @@ mod tests {
             assert_eq!(got_status, status, "{name}");
             assert_eq!(got_message.as_deref(), message, "{name}");
         }
+    }
+
+    fn emails(found: &Result<Found, Error>) -> (String, String) {
+        let mut out = Vec::new();
+        let mut err = Vec::new();
+        write_emails(&mut out, &mut err, "8.8.8.8", found).unwrap();
+        (
+            String::from_utf8(out).unwrap(),
+            String::from_utf8(err).unwrap(),
+        )
+    }
+
+    #[test]
+    fn write_emails_writes_only_each_address_one_time() {
+        let mut found = found();
+        // The same address, from a second source, for a second scope.
+        found.contacts.push(Contact {
+            email: EmailAddress::new("network-abuse@example.com").unwrap(),
+            scope: Scope::Domain,
+            source: Source::AbuseNet,
+        });
+
+        let (out, err) = emails(&Ok(found));
+
+        assert_eq!(out, "network-abuse@example.com\nnoc@example.org\n");
+        assert_eq!(err, "");
+    }
+
+    #[test]
+    fn write_emails_writes_a_failure_to_standard_error() {
+        let mut found = found();
+        found.failures.push(abusix_timeout());
+
+        let (out, err) = emails(&Ok(found));
+
+        assert_eq!(out, "network-abuse@example.com\nnoc@example.org\n");
+        assert!(
+            err.starts_with("8.8.8.8: Abusix did not answer: the DNS lookup for "),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn write_emails_says_when_no_source_gave_a_contact() {
+        let (out, err) = emails(&Ok(Found::default()));
+
+        assert_eq!(out, "");
+        assert_eq!(err, "8.8.8.8: no source gave an abuse contact\n");
+    }
+
+    #[test]
+    fn write_emails_writes_a_target_that_was_not_looked_up_to_standard_error() {
+        let (out, err) = emails(&Err(not_public()));
+
+        assert_eq!(out, "");
+        assert!(
+            err.starts_with("8.8.8.8: 10.0.0.1 is a private, reserved or documentation address"),
+            "{err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn run_writes_only_the_addresses_with_email() {
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+
+        let result = run(
+            &Answers,
+            Format::Email,
+            targets(&["8.8.8.8", "example.com"]),
+            &mut out,
+            &mut err,
+        )
+        .await;
+
+        assert!(matches!(result, Ok(true)), "{result:?}");
+        assert_eq!(
+            String::from_utf8(out).unwrap(),
+            "network-abuse@example.com\nnoc@example.org\n\
+             network-abuse@example.com\nnoc@example.org\n"
+        );
     }
 
     #[test]

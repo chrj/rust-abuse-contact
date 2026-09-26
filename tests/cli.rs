@@ -21,7 +21,7 @@ fn help_shows_the_usage() {
     assert_eq!(output.status.code(), Some(0));
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(
-        stdout.starts_with("Usage: abuse-contact [--json] [TARGET]...\n"),
+        stdout.starts_with("Usage: abuse-contact [--json | --email] [TARGET]...\n"),
         "{stdout}"
     );
 }
